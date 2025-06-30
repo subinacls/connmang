@@ -477,7 +477,7 @@ class SSHManager:
                     })
             return services
         except Exception as e:
-            logger.error(f"Failed to list services on {alias}: {e}")
+            print(f"Failed to list services on {alias}: {e}")
             return []
     
 
@@ -492,5 +492,5 @@ class SSHManager:
             stdin, stdout, stderr = session.client.exec_command(command)
             return stdout.channel.recv_exit_status() == 0
         except Exception as e:
-            logger.error(f"Failed to {action} {service_name} on {alias}: {e}")
+            print(f"Failed to {action} {service_name} on {alias}: {e}")
             return False

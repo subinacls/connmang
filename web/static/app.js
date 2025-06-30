@@ -467,9 +467,21 @@ function toggleCardBody(event, alias) {
 }
 
 function openServiceModal(alias) {
+    const container = document.getElementById("service-list");
+    if (!container) {
+        console.error("❌ #service-list not found in DOM");
+        alert("Modal not loaded in the page. Check template.");
+        return;
+    }
     fetch(`/api/ssh/${alias}/services`)
         .then(res => res.json())
         .then(services => {
+            if (!Array.isArray(services)) {
+                console.warn("⚠️ Service list not an array:", services);
+                alert("❌ Failed to fetch services.");
+                return;
+            }
+
             let html = "<ul class='list-group'>";
             services.forEach(svc => {
                 const controls = svc.status === "running"
@@ -483,13 +495,16 @@ function openServiceModal(alias) {
             });
             html += "</ul>";
             document.getElementById("service-list").innerHTML = html;
-            new bootstrap.Modal(document.getElementById("serviceModal")).show();
+
+            const modal = new bootstrap.Modal(document.getElementById("serviceModal"));
+            modal.show();
         })
         .catch(err => {
-            console.error("❌ Failed to load services for:", alias, err);
+            console.error("❌ Failed to load services:", err);
             alert("Could not load service list.");
         });
 }
+
 
     function refreshProfiles() {
         fetch("/api/profiles")
@@ -565,25 +580,19 @@ function openServiceModal(alias) {
                                         </button>
                                     </div>
                                 </div>
+                                <div>
+                                    <div id="sudo-test-${alias}" class="mt-2 text-warning"></div>
+                                </div>
 
                                 <button class="btn btn-sm btn-outline-info" onclick="runSecurityAudit('${alias}')">🛡️ Security Audit</button>
 
                                 <div id="status-profile-${alias}" style="${isConnected ? 'display:inline-block;' : 'display:none;'}" class="text-info small">🔄 Checking...</div>
 
-                                <div>
-                                    <div id="sudo-test-${alias}" class="mt-2 text-warning"></div>
-                                </div>
-
                                 <div id="card-extra-${alias}" class="collapse mt-3">
                                     <div class="mt-2 d-grid gap-2">
 
-                                    <div>
-                                        <button class="btn btn-danger" onclick="alert('test')">TEST BUTTON</button>
-                                    </div>
-
                                         <button id="serviceaction-btn-${alias}" class="btn btn-sm btn-warning me-2 w-100"
-                                            style="${isConnected ? 'display:inline-block;' : 'display:none;'}"
-                                            onclick="openServiceModal('${alias}')"
+                                            style="display:inline-block;"                                            onclick="openServiceModal('${alias}')"
                                             data-bs-toggle="tooltip"
                                             title="Open modal to manage remote systems services">
                                               Manage Remote Services

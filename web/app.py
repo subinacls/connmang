@@ -891,19 +891,20 @@ def run_b64_script(alias: str, data: dict):
     except Exception as e:
         return {"error": str(e)}
 
-@api_router.get("/api/ssh/{alias}/services")
-async def get_services(alias: str):
-    return ssh_manager.list_services(alias)
+@app.route("/api/ssh/<alias>/services", methods=["GET"])
+def get_services(alias):
+    return jsonify(ssh_mgr.list_services(alias))
 
-@api_router.post("/api/ssh/{alias}/service_action")
-async def perform_service_action(alias: str, data: dict):
+@app.route("/api/ssh/<alias>/service_action", methods=["POST"])
+def perform_service_action(alias):
+    data = request.get_json()
     service = data.get("service")
     action = data.get("action")
     if not service or not action:
-        raise HTTPException(status_code=400, detail="Invalid parameters")
-    result = ssh_manager.control_service(alias, service, action)
-    return {"status": "ok" if result else "fail"}
+        return jsonify({"error": "Invalid parameters"}), 400
 
+    result = ssh_mgr.control_service(alias, service, action)
+    return jsonify({"status": "ok" if result else "fail"})
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5050, debug=True)
