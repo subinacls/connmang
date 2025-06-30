@@ -466,6 +466,31 @@ function toggleCardBody(event, alias) {
     collapseInstance.toggle();
 }
 
+function openServiceModal(alias) {
+    fetch(`/api/ssh/${alias}/services`)
+        .then(res => res.json())
+        .then(services => {
+            let html = "<ul class='list-group'>";
+            services.forEach(svc => {
+                const controls = svc.status === "running"
+                    ? `<button class="btn btn-sm btn-danger" onclick="serviceAction('${alias}', '${svc.name}', 'stop')">Stop</button>
+                       <button class="btn btn-sm btn-secondary" onclick="serviceAction('${alias}', '${svc.name}', 'restart')">Restart</button>`
+                    : `<button class="btn btn-sm btn-success" onclick="serviceAction('${alias}', '${svc.name}', 'start')">Start</button>`;
+                html += `<li class='list-group-item d-flex justify-content-between align-items-center'>
+                            ${svc.name} - <strong>${svc.status}</strong>
+                            <div>${controls}</div>
+                         </li>`;
+            });
+            html += "</ul>";
+            document.getElementById("service-list").innerHTML = html;
+            new bootstrap.Modal(document.getElementById("serviceModal")).show();
+        })
+        .catch(err => {
+            console.error("❌ Failed to load services for:", alias, err);
+            alert("Could not load service list.");
+        });
+}
+
     function refreshProfiles() {
         fetch("/api/profiles")
             .then(res => res.json())
@@ -548,10 +573,16 @@ function toggleCardBody(event, alias) {
                                 <div>
                                     <div id="sudo-test-${alias}" class="mt-2 text-warning"></div>
                                 </div>
+
                                 <div id="card-extra-${alias}" class="collapse mt-3">
                                     <div class="mt-2 d-grid gap-2">
 
-                                        <button class="btn btn-warning btn-service-control" data-alias="${alias}">
+                                    <div>
+                                        <button class="btn btn-danger" onclick="alert('test')">TEST BUTTON</button>
+                                    </div>
+
+                                        <button id="serviceaction-btn-${alias}" class="btn btn-sm btn-warning me-2 w-100"
+                                            style="${isConnected ? 'display:inline-block;' : 'display:none;'}"
                                             onclick="openServiceModal('${alias}')"
                                             data-bs-toggle="tooltip"
                                             title="Open modal to manage remote systems services">
@@ -650,30 +681,6 @@ function toggleCardBody(event, alias) {
             });
     }
 
-
-document.querySelectorAll(".btn-service-control").forEach(btn => {
-    btn.addEventListener("click", () => {
-        const alias = btn.dataset.alias;
-        fetch(`/api/ssh/${alias}/services`)
-            .then(res => res.json())
-            .then(services => {
-                let html = "<ul class='list-group'>";
-                services.forEach(svc => {
-                    const controls = svc.status === "running"
-                        ? `<button class="btn btn-sm btn-danger" onclick="serviceAction('${alias}', '${svc.name}', 'stop')">Stop</button>
-                            <button class="btn btn-sm btn-secondary" onclick="serviceAction('${alias}', '${svc.name}', 'restart')">Restart</button>`
-                        : `<button class="btn btn-sm btn-success" onclick="serviceAction('${alias}', '${svc.name}', 'start')">Start</button>`;
-                    html += `<li class='list-group-item d-flex justify-content-between align-items-center'>
-                                ${svc.name} - <strong>${svc.status}</strong>
-                                <div>${controls}</div>
-                                </li>`;
-                });
-                html += "</ul>";
-                document.getElementById("service-list").innerHTML = html;
-                new bootstrap.Modal(document.getElementById("serviceModal")).show();
-            });
-    });
-});
 
 function serviceAction(alias, service, action) {
     fetch(`/api/ssh/${alias}/service_action`, {
