@@ -14,11 +14,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!collapseEl) return;
 
     collapseEl.addEventListener("shown.bs.collapse", () => {
-        console.log("✅ Form opened");
+        console.log("✅ Profile Configuration Form opened");
     });
 
     collapseEl.addEventListener("hidden.bs.collapse", () => {
-        console.log("🔻 Form closed");
+        console.log("🔻PRofile Configuration Form closed");
     });
 });
 
@@ -27,11 +27,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!collapseEl) return;
 
     collapseEl.addEventListener("shown.bs.collapse", () => {
-        console.log("✅ Cards opened");
+        console.log("✅ Profile Cards opened");
     });
 
     collapseEl.addEventListener("hidden.bs.collapse", () => {
-        console.log("🔻 Cards closed");
+        console.log("🔻 Profile Cards closed");
     });
 });
 
@@ -40,11 +40,24 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!collapseEl) return;
 
     collapseEl.addEventListener("shown.bs.collapse", () => {
-        console.log("✅ Cards opened");
+        console.log("✅ SFTP Manager opened");
     });
 
     collapseEl.addEventListener("hidden.bs.collapse", () => {
-        console.log("🔻 Cards closed");
+        console.log("🔻 SFTP Manager closed");
+    });
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+    const collapseEl = document.getElementById("sessionList");
+    if (!collapseEl) return;
+
+    collapseEl.addEventListener("shown.bs.collapse", () => {
+        console.log("✅ Session list opened");
+    });
+
+    collapseEl.addEventListener("hidden.bs.collapse", () => {
+        console.log("🔻 Session list closed");
     });
 });
 
