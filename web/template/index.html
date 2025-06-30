@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SSH Connection Manager</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.min.js"></script>
+    <script src="/static/app.js"></script>
+    <style>
+        .btn-sm {
+            padding: 2px 6px;
+            font-size: 0.8rem;
+        }
+        .profile-card .collapse {
+            transition: height 0.25s ease;
+        }
+        .delete-tab {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 24px;
+            height: 24px;
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            text-align: center;
+            line-height: 24px;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        #terminalModal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            z-index: 9999;
+        }
+        #terminal {
+            margin: auto;
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: black;
+            width: 90%;
+            height: 80%;
+            border: 2px solid #ccc;
+        }
+        #profileList .card {
+            width: 80%;
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body class="bg-dark text-white">
+    <div class="container mt-4">
+        <h1 class="mb-4">SSH ConnMang</h1>
+        <h3>Session Editor</h3>
+        <button class="btn btn-outline-light mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#addFormContainer" aria-expanded="false" aria-controls="addFormContainer">
+          ➕ Add New Connection
+        </button>
+        <div class="collapse" id="addFormContainer">
+            <form id="addForm" class="row g-3">
+                <div class="col-md-2">
+                    <input id="alias" class="form-control" name="alias" placeholder="Alias" required>
+                </div>
+                <div class="col-md-2">
+                    <input id="host" class="form-control" name="host" placeholder="Host" required>
+                </div>
+                <div class="col-md-1">
+                    <input id="port" class="form-control" name="port" type="number" placeholder="Port" value="22">
+                </div>
+                <div class="col-md-2">
+                    <input id="username" class="form-control" name="username" placeholder="Username" required>
+                </div>
+                <div class="col-md-2">
+                    <input id="password" class="form-control" name="password" placeholder="Password">
+                </div>
+                <div class="col-md-2">
+                    <input id="key_file" class="form-control" name="key_file" placeholder="Private Key (opt)">
+                    <textarea id="key_text" class="form-control mt-2" rows="6" placeholder="Paste Private Key Here (optional)"></textarea>
+                </div>
+                <!-- Advanced SSH Options -->
+                <div class="col-md-12 mt-2">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="gatewayPorts">
+                        <label class="form-check-label" for="gatewayPorts">Gateway Ports (-g)</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="compression">
+                        <label class="form-check-label" for="compression">Compression (-C)</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="agentForwarding">
+                        <label class="form-check-label" for="agentForwarding">Agent Forwarding (-A)</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="x11Forwarding">
+                        <label class="form-check-label" for="x11Forwarding">X11 Forwarding (-X)</label>
+                    </div>
+                    <input class="form-control mt-2" id="jumpHost" placeholder="Jump Host (e.g. user@bastion)">
+                    <input class="form-control mt-2" id="localForward" placeholder="Local Forward (e.g. 8080:localhost:80)">
+                    <input class="form-control mt-2" id="remoteForward" placeholder="Remote Forward (e.g. 2222:localhost:22)">
+                    <input class="form-control mt-2" id="socksProxy" placeholder="SOCKS5 Proxy (e.g. 1080)">
+                    <input class="form-control mt-2" id="customOptions" placeholder='Custom SSH Options (-o), e.g. ServerAliveInterval=60'>
+                </div>
+                <div class="col-md-1 mt-3">
+                    <button class="btn btn-success w-100">Add</button>
+                </div>
+            </form>
+        </div>
+        <h3>Profiles</h3>
+        <button class="btn btn-outline-secondary mb-3"
+            type="button" data-bs-toggle="collapse"
+            data-bs-target="#profileCards" aria-expanded="true"
+            aria-controls="profileCards">🧩 Toggle SSH Profiles</button>
+        <div class="collapse" id="profileCards">
+           <div id="profileList" class="row g-3"></div>
+        </div>
+        <h3>SFTP File Manager</h3>
+        <button class="btn btn-outline-info mb-3" type="button"
+        data-bs-toggle="collapse" data-bs-target="#sftpManager"
+        aria-expanded="false" aria-controls="sftpManager">📂 Toggle SFTP Manager</button>
+        <div class="collapse" id="sftpManager">
+          <div class="mb-3">
+            <select id="sftpAlias" class="form-select mb-2"></select>
+            <input id="sftpPath" class="form-control mb-2" placeholder="Remote Path" value="." />
+            <div class="mb-2">
+                <button class="btn btn-primary me-2" onclick="listRemote()">List</button>
+                <input type="file" id="uploadFile" />
+                <button class="btn btn-secondary ms-2" onclick="uploadFile()">Upload</button>
+            </div>
+          </div>
+          <table class="table table-dark table-striped">
+              <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Permissions</th>
+                        <th>Size</th>
+                        <th>Modified</th>
+                        <th>Actions</th>
+                    </tr>
+              </thead>
+              <tbody id="sftpList"></tbody>
+          </table>
+        </div>
+        <h3>Backgrounded Sessions</h3>
+        <button class="btn btn-outline-warning mb-3" type="button"
+            data-bs-toggle="collapse" data-bs-target="#sessionListCollapse"
+            aria-expanded="false" aria-controls="sessionListCollapse">🧵 Toggle Sessions</button>
+        <div class="collapse" id="sessionListCollapse">
+            <div id="sessionList" class="mb-4"></div>
+        </div>
+    </div>
+    <div id="terminalModal" style="display: none;">
+        <div class="text-end p-2">
+            <button onclick="closeTerminal()" class="btn btn-sm btn-danger">Close Terminal</button>
+        </div>
+        <div id="terminal" style="width: 100%; height: 80vh;"></div>
+    </div>
+    <div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailsModalLabel">Connection Details</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <pre id="detailsContent" class="text-light"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="keyManagerModal" tabindex="-1" aria-labelledby="keyManagerLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="keyManagerLabel">Key Manager for <span id="km-alias"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Key Generation Form -->
+                    <form id="generate-key-form" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                            <select class="form-select" id="key-type" required>
+                                <option value="rsa">RSA</option>
+                                <option value="ecdsa">ECDSA</option>
+                                <option value="ed25519">Ed25519</option>
+                            </select>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control"
+                                id="key-comment" placeholder="Key Comment (optional)">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="password" class="form-control"
+                                id="key-passphrase" placeholder="Passphrase (optional)">
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-outline-light w-100">Generate</button>
+                            </div>
+                        </div>
+                    </form>
+                    <!-- Table Display for Existing Keys -->
+                    <table class="table table-sm table-dark table-striped">
+                        <thead>
+                            <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Comment</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="key-list-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="keyAuditModal" tabindex="-1" aria-labelledby="keyAuditLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="keyAuditLabel">🔍 SSH Key Audit</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="key-audit-body">Loading...</div>
+            </div>
+        </div>
+    </div>
+</body>
+<footer></footer>
+</html>
