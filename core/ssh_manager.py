@@ -456,3 +456,41 @@ class SSHManager:
             temp_client.close()
 
         return {"output": output, "error": error}
+    
+    def list_services(self, alias):
+        session = self.sessions.get(alias)
+        if not session:
+            return []
+
+        try:
+            stdin, stdout, stderr = session.client.exec_command(
+                "systemctl list-units --type=service --all --no-pager --no-legend"
+            )
+            output = stdout.read().decode()
+            services = []
+            for line in output.splitlines():
+                parts = line.split()
+                if len(parts) >= 4:
+                    services.append({
+                        "name": parts[0],
+                        "status": parts[3],
+                    })
+            return services
+        except Exception as e:
+            logger.error(f"Failed to list services on {alias}: {e}")
+            return []
+    
+
+    def control_service(self, alias, service_name, action):
+        session = self.sessions.get(alias)
+        if not session:
+            return False
+        if action not in ("start", "stop", "restart"):
+            return False
+        try:
+            command = f"sudo systemctl {action} {service_name}"
+            stdin, stdout, stderr = session.client.exec_command(command)
+            return stdout.channel.recv_exit_status() == 0
+        except Exception as e:
+            logger.error(f"Failed to {action} {service_name} on {alias}: {e}")
+            return False

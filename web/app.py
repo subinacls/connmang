@@ -891,6 +891,18 @@ def run_b64_script(alias: str, data: dict):
     except Exception as e:
         return {"error": str(e)}
 
+@api_router.get("/api/ssh/{alias}/services")
+async def get_services(alias: str):
+    return ssh_manager.list_services(alias)
+
+@api_router.post("/api/ssh/{alias}/service_action")
+async def perform_service_action(alias: str, data: dict):
+    service = data.get("service")
+    action = data.get("action")
+    if not service or not action:
+        raise HTTPException(status_code=400, detail="Invalid parameters")
+    result = ssh_manager.control_service(alias, service, action)
+    return {"status": "ok" if result else "fail"}
 
 
 if __name__ == "__main__":

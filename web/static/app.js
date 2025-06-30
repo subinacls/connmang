@@ -551,11 +551,18 @@ function toggleCardBody(event, alias) {
                                 <div id="card-extra-${alias}" class="collapse mt-3">
                                     <div class="mt-2 d-grid gap-2">
 
+                                        <button class="btn btn-warning btn-service-control" data-alias="${alias}">
+                                            onclick="openServiceModal('${alias}')"
+                                            data-bs-toggle="tooltip"
+                                            title="Open modal to manage remote systems services">
+                                              Manage Remote Services
+                                        </button>
+
                                         <button id="keyaction-btn-${alias}" class="btn btn-sm btn-secondary me-2 w-100"
                                             style="${isConnected ? 'display:inline-block;' : 'display:none;'}"
                                             onclick="openKeyManagerModal('${alias}')"
                                             data-bs-toggle="tooltip"
-                                            title="Open modal to manage profiles remote keys">
+                                            title="Open modal to manage remote systems SSH keys">
                                             🗝️ Remote Key Manager
                                         </button>
 
@@ -642,6 +649,48 @@ function toggleCardBody(event, alias) {
                 });
             });
     }
+
+
+document.querySelectorAll(".btn-service-control").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const alias = btn.dataset.alias;
+        fetch(`/api/ssh/${alias}/services`)
+            .then(res => res.json())
+            .then(services => {
+                let html = "<ul class='list-group'>";
+                services.forEach(svc => {
+                    const controls = svc.status === "running"
+                        ? `<button class="btn btn-sm btn-danger" onclick="serviceAction('${alias}', '${svc.name}', 'stop')">Stop</button>
+                            <button class="btn btn-sm btn-secondary" onclick="serviceAction('${alias}', '${svc.name}', 'restart')">Restart</button>`
+                        : `<button class="btn btn-sm btn-success" onclick="serviceAction('${alias}', '${svc.name}', 'start')">Start</button>`;
+                    html += `<li class='list-group-item d-flex justify-content-between align-items-center'>
+                                ${svc.name} - <strong>${svc.status}</strong>
+                                <div>${controls}</div>
+                                </li>`;
+                });
+                html += "</ul>";
+                document.getElementById("service-list").innerHTML = html;
+                new bootstrap.Modal(document.getElementById("serviceModal")).show();
+            });
+    });
+});
+
+function serviceAction(alias, service, action) {
+    fetch(`/api/ssh/${alias}/service_action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ service, action })
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.status === "ok") {
+            alert(`${action} executed on ${service}`);
+        } else {
+            alert(`Failed to ${action} ${service}`);
+        }
+    });
+}
+    
 
 
 function attach(alias, elevate = false) {
