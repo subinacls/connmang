@@ -236,15 +236,20 @@
             </div>
         </div>
     </div>
-    <div class="modal fade" id="serviceModal" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-            <div class="modal-content bg-dark text-white">
-                <div class="modal-header">
-                    <h5 class="modal-title"id="service-list">Manage Services</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="service-list-body">Loading...</div>
+    <!-- Service Modal -->
+    <div class="modal fade" id="serviceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title">Service Manager</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <div class="modal-body">
+            <div id="service-list">
+                <!-- Will be populated by openServiceModal -->
+            </div>
+            </div>
+        </div>
         </div>
     </div>
 </body>

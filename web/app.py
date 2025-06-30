@@ -1,6 +1,7 @@
 import eventlet
 eventlet.monkey_patch()
 
+from urllib.parse import unquote
 from flask import Flask, request, render_template, jsonify
 from flask_socketio import SocketIO, emit
 import traceback
@@ -526,7 +527,7 @@ def get_profiles():
     return jsonify(profiles)
 '''
 
-def forward_output(alias, channel):
+def forward_output(alias, channel, sid):
     try:
         while True:
             if channel.recv_ready():
@@ -550,7 +551,7 @@ def handle_attach(data):
         for line in session_logs.get(alias, []):
             socketio.emit("output", line, room=sid)
 
-        socketio.start_background_task(target=forward_output(alias, channel))
+        socketio.start_background_task(target=forward_output(alias, channel, sid))
     else:
         emit("output", f"\n[!] No background session found for alias: {alias}\n")
 
@@ -656,7 +657,7 @@ def reattach_session(data):
         for line in session_logs.get(alias, []):
             socketio.emit('shell_output', {'output': line}, to=sid)
 
-        thread = threading.Thread(target=forward_output(alias, channel))
+        thread = threading.Thread(target=forward_output(alias, channel, sid))
         thread.daemon = True
         thread.start()
 
@@ -683,19 +684,20 @@ def health_check(alias):
         port = int(profile.get("port", 22))
         sock = socket.create_connection((ip, port), timeout=3)
         sock.close()
-        return jsonify({"status": "online"})
+
+        try:
+            # Check SSH session state
+            connected = ssh_mgr.is_connected(alias)
+            return jsonify({
+                "status": "online",
+                "connected": connected
+            })
+        except Exception as e:
+            return jsonify({"status": "offline", "error": str(e)})
+
     except Exception as e:
         return jsonify({"status": "offline", "error": str(e)})
 
-    try:
-        # Check SSH session state
-        connected = ssh_mgr.is_connected(alias)
-        return jsonify({
-            "status": status,
-            "connected": connected
-        })
-    except Exception as e:
-        return jsonify({"status": "Connection status failed", "error": str(e)})
 
 def format_permissions(mode):
     return stat.filemode(mode)
@@ -892,8 +894,12 @@ def run_b64_script(alias: str, data: dict):
         return {"error": str(e)}
 
 @app.route("/api/ssh/<alias>/services", methods=["GET"])
-def get_services(alias):
-    return jsonify(ssh_mgr.list_services(alias))
+async def get_services(alias: str):
+    alias = unquote(alias)
+    try:
+        return ssh_mgr.list_services(alias)
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.route("/api/ssh/<alias>/service_action", methods=["POST"])
 def perform_service_action(alias):
