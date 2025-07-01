@@ -503,9 +503,9 @@ function openServiceModal(alias) {
                     "bg-secondary text-light";
 
                 const controls = status === "running"
-                    ? `<button class="btn btn-sm btn-danger me-1" onclick="serviceAction('${alias}', '${svc.name}', 'stop')">Stop</button>
-                    <button class="btn btn-sm btn-secondary" onclick="serviceAction('${alias}', '${svc.name}', 'restart')">Restart</button>`
-                    : `<button class="btn btn-sm btn-success" onclick="serviceAction('${alias}', '${svc.name}', 'start')">Start</button>`;
+                    ? `<button class="btn btn-sm btn-danger me-1" onclick="event.stopPropagation(); remoteserviceAction('${alias}', '${svc.name}', 'stop')">Stop</button>
+                    <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); remoteserviceAction('${alias}', '${svc.name}', 'restart')">Restart</button>`
+                    : `<button class="btn btn-sm btn-success" onclick="event.stopPropagation(); remoteserviceAction('${alias}', '${svc.name}', 'start')">Start</button>`;
 
                 const rowId = `svc-row-${btoa(svc.name).replace(/=/g, '')}`;
                 const arrowId = `arrow-${rowId}`;
