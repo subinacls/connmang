@@ -1614,8 +1614,10 @@ function openFirewallViewer(alias) {
                         }
                     });
 
-                    cy.resize();
-                    cy.fit();
+                    setTimeout(() => {
+                        cy.resize();
+                        cy.fit();
+                    }, 150);
 
                     activeSet = true;
                 });
@@ -1634,17 +1636,35 @@ function openFirewallViewer(alias) {
 
                 const summaryTable = document.createElement("table");
                 summaryTable.className = "table table-sm table-bordered";
-                summaryTable.innerHTML = \`
-                    <thead><tr><th>Table</th><th>Chain</th><th>Rule Count</th><th>Targets</th></tr></thead>
-                    <tbody>\${data.summary.map(row => \`
+
+                const tbody = data.summary.map(row => {
+                    const targetSummary = Object.entries(row.targets)
+                        .map(([k, v]) => `${k} (${v})`)
+                        .join(", ");
+
+                    return `
                         <tr>
-                            <td>\${row.table}</td>
-                            <td>\${row.chain}</td>
-                            <td>\${row.rule_count}</td>
-                            <td>\${Object.entries(row.targets).map(([k,v]) => \`\${k} (\${v})\`).join(", ")}</td>
+                            <td>${row.table}</td>
+                            <td>${row.chain}</td>
+                            <td>${row.rule_count}</td>
+                            <td>${targetSummary}</td>
                         </tr>
-                    \`).join("")}</tbody>
-                \`;
+                    `;
+                }).join("");
+
+                summaryTable.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Table</th>
+                            <th>Chain</th>
+                            <th>Rule Count</th>
+                            <th>Targets</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tbody}
+                    </tbody>
+                `;
 
                 summaryContent.appendChild(summaryTable);
                 contentContainer.appendChild(summaryContent);
