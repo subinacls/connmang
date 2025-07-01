@@ -689,7 +689,7 @@ function toggleServiceDetails(alias, serviceName, containerId, arrowId) {
 
                                         <button class="btn btn-sm btn-secondary"
                                             style="${isConnected ? 'display:inline-block;' : 'display:none;'}"
-                                            onclick="openFirewallViewer('${alias}')"
+                                            onclick="openFirewallViewer()"
                                             data-bs-toggle="tooltip"
                                             title="Open modal to manager remote systems firewall">
                                             <i class="bi bi-diagram-3"></i> View Firewall Flow
@@ -1440,62 +1440,39 @@ function backgroundElevatedSession(alias) {
 }
 
 
-function openFirewallViewer(alias) {
+function openFirewallViewer() {
     const modalEl = document.getElementById("firewallModal");
+    const cyContainer = document.getElementById("cy-firewall");
 
     modalEl.addEventListener("shown.bs.modal", function handler() {
-        modalEl.removeEventListener("shown.bs.modal", handler); // prevent repeat
+        modalEl.removeEventListener("shown.bs.modal", handler);
 
-        const cy = cytoscape({
-            container: document.getElementById("cy-firewall"),
-            elements: [
-                { data: { id: 'FORWARD' } },
-                { data: { id: 'DOCKER-USER' } },
-                {
-                    data: {
-                        id: 'FORWARD_DOCKER-USER',
-                        source: 'FORWARD',
-                        target: 'DOCKER-USER',
-                        label: 'jumps to'
-                    }
-                }
-            ],
-            style: [
-                {
-                    selector: 'node',
-                    style: {
-                        'background-color': '#17a2b8',
-                        'label': 'data(id)',
-                        'color': '#fff',
-                        'text-valign': 'center',
-                        'text-halign': 'center',
-                        'font-size': '10px'
-                    }
-                },
-                {
-                    selector: 'edge',
-                    style: {
-                        'width': 2,
-                        'line-color': '#aaa',
-                        'target-arrow-color': '#aaa',
-                        'target-arrow-shape': 'triangle',
-                        'curve-style': 'bezier',
-                        'label': 'data(label)',
-                        'font-size': '8px'
-                    }
-                }
-            ],
-            layout: {
-                name: 'breadthfirst',
-                directed: true,
-                padding: 10
-            }
-        });
+        // Confirm container is visible
+        console.log("🔥 Modal shown. Container size:", cyContainer.clientWidth, cyContainer.clientHeight);
 
-        cy.fit(); // zoom to fit view
+        // Delay actual render slightly
+        setTimeout(() => {
+            const cy = cytoscape({
+                container: cyContainer,
+                elements: [
+                    { data: { id: 'FORWARD' } },
+                    { data: { id: 'DOCKER-USER' } },
+                    { data: { id: 'FORWARD_DOCKER-USER', source: 'FORWARD', target: 'DOCKER-USER', label: 'jumps to' } }
+                ],
+                style: [ /* same styles as before */ ],
+                layout: {
+                    name: 'breadthfirst',
+                    directed: true,
+                    padding: 10
+                }
+            });
+
+            cy.fit();
+        }, 100);
     });
 
     new bootstrap.Modal(modalEl).show();
 }
+
 
 
