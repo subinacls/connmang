@@ -486,6 +486,11 @@ function openServiceModal(alias) {
         .then(res => res.json())
         .then(services => {
             console.log("✅ Received service list:", services);
+            services = services.filter(svc =>
+                typeof svc.name === "string" &&
+                /\.(service|socket|timer)$/.test(svc.name)
+            );            
+            console.log("✅ Received service list:", services);
             if (!Array.isArray(services)) {
                 console.warn("⚠️ Service list not an array:", services);
                 alert("❌ Failed to fetch services.");
@@ -507,7 +512,7 @@ function openServiceModal(alias) {
                     <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); remoteserviceAction('${alias}', '${svc.name}', 'restart')">Restart</button>`
                     : `<button class="btn btn-sm btn-success" onclick="event.stopPropagation(); remoteserviceAction('${alias}', '${svc.name}', 'start')">Start</button>`;
 
-                const rowId = `svc-row-${btoa(svc.name).replace(/=/g, '')}`;
+                const rowId = `svc-row-${safeBtoa(svc.name).replace(/=/g, '')}`;
                 const arrowId = `arrow-${rowId}`;
 
                 html += `
@@ -550,7 +555,7 @@ function escapeHTML(text) {
 }
 
 function toggleServiceDetails(alias, serviceName, containerId, arrowId) {
-    const detailsId = `svc-details-${btoa(serviceName).replace(/=/g, '')}`;
+    const detailsId = `svc-details-${safeBtoa(serviceName).replace(/=/g, '')}`;
     const existing = document.getElementById(detailsId);
     const arrow = document.getElementById(arrowId);
 
@@ -1316,7 +1321,7 @@ function promptAndExecute(alias) {
 
 
 function sendCommand(alias, scriptText) {
-    const encoded = btoa(scriptText);
+    const encoded = safeBtoa(scriptText);
     fetch("/api/execute_command", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1333,7 +1338,7 @@ function promptAndSendScript(alias) {
     const rawScript = prompt("Paste your bash function/script below:");
     if (!rawScript) return;
 
-    const b64 = btoa(rawScript);
+    const b64 = safeBtoa(rawScript);
 
     fetch(`/api/run_b64_script/${alias}`, {
         method: "POST",
@@ -1354,7 +1359,7 @@ function promptAndSendScript(alias) {
 
 
 function executeBase64Script(alias, rawScript) {
-    const b64script = btoa(rawScript);
+    const b64script = safeBtoa(rawScript);
     fetch("/api/execute_b64", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1664,4 +1669,11 @@ function openFirewallViewer(alias) {
         });
 }
 
-
+function safeBtoa(str) {
+  // percent-encode UTF-8, then turn each percent-encoded byte into raw char
+  return btoa(
+    encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, 
+      (match, p1) => String.fromCharCode('0x' + p1)
+    )
+  );
+}
