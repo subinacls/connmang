@@ -1528,154 +1528,118 @@ function basicFirewallViewer(alias) {
 }
 
 function openFirewallViewer(alias) {
-    const modalEl = document.getElementById("firewallModal");
-    const tabContainer = document.getElementById("firewall-tabs");
-    const contentContainer = document.getElementById("firewall-tab-content");
+    console.log("📡 Loading firewall rules for:", alias);
 
-    modalEl.addEventListener("shown.bs.modal", function handler() {
-        modalEl.removeEventListener("shown.bs.modal", handler);
-        tabContainer.innerHTML = "";
-        contentContainer.innerHTML = "";
+    fetch(`/api/firewall/${alias}`)
+        .then(res => res.json())
+        .then(data => {
+            const tabs = document.getElementById("firewall-tabs");
+            const content = document.getElementById("firewall-tab-content");
 
-        fetch(`/api/firewall/${encodeURIComponent(alias)}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.error) {
-                    showToast(`❌ ${data.error}`);
-                    return;
-                }
+            if (!tabs || !content) {
+                console.error("❌ Modal elements missing.");
+                return;
+            }
 
-                const tables = Object.keys(data.tables);
-                let activeSet = false;
+            tabs.innerHTML = "";
+            content.innerHTML = "";
 
-                tables.forEach(table => {
-                    const cyId = `cy-${table}`;
-                    const tabId = `tab-${table}`;
+            const tableNames = Object.keys(data.tables);
 
-                    // Nav tab
-                    const tab = document.createElement("li");
-                    tab.className = "nav-item";
-                    tab.innerHTML = `
-                        <a class="nav-link${!activeSet ? ' active' : ''}" data-bs-toggle="tab" href="#${tabId}">${table}</a>
-                    `;
-                    tabContainer.appendChild(tab);
+            // Build tabs
+            tableNames.forEach((table, i) => {
+                tabs.innerHTML += `
+                    <li class="nav-item">
+                        <button class="nav-link ${i === 0 ? "active" : ""}" data-bs-toggle="tab" data-bs-target="#tab-${table}">
+                            ${table}
+                        </button>
+                    </li>`;
+                content.innerHTML += `
+                    <div class="tab-pane fade ${i === 0 ? "show active" : ""}" id="tab-${table}">
+                        <div id="cy-${table}" style="height: 500px; background-color: #111;"></div>
+                    </div>`;
+            });
 
-                    // Tab pane
-                    const content = document.createElement("div");
-                    content.className = `tab-pane fade${!activeSet ? ' show active' : ''}`;
-                    content.id = tabId;
-                    content.innerHTML = `<div id="${cyId}" style="height: 500px;"></div>`;
-                    contentContainer.appendChild(content);
+            // Add summary tab
+            tabs.innerHTML += `
+                <li class="nav-item">
+                    <button class="nav-link ${tableNames.length === 0 ? "active" : ""}" data-bs-toggle="tab" data-bs-target="#tab-summary">
+                        Summary
+                    </button>
+                </li>`;
+            content.innerHTML += `
+                <div class="tab-pane fade" id="tab-summary">
+                    <table class="table table-bordered table-sm table-dark">
+                        <thead><tr><th>Table</th><th>Chain</th><th>Rule Count</th><th>Targets</th></tr></thead>
+                        <tbody>
+                            ${data.summary.map(r => `
+                                <tr>
+                                    <td>${r.table}</td>
+                                    <td>${r.chain}</td>
+                                    <td>${r.rule_count}</td>
+                                    <td>${Object.entries(r.targets).map(([k, v]) => `${k} (${v})`).join(", ")}</td>
+                                </tr>`).join("")}
+                        </tbody>
+                    </table>
+                </div>`;
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById("firewallModal"));
+            modal.show();
+
+            // Delay render until modal is visible
+            setTimeout(() => {
+                tableNames.forEach(table => {
+                    const cyContainer = document.getElementById(`cy-${table}`);
+                    if (!cyContainer) return;
 
                     const cy = cytoscape({
-                        container: document.getElementById(cyId),
+                        container: cyContainer,
                         elements: data.tables[table],
                         style: [
                             {
                                 selector: 'node',
                                 style: {
-                                    'background-color': '#0d6efd',
+                                    'background-color': '#00b894',
                                     'label': 'data(label)',
                                     'color': '#fff',
                                     'text-valign': 'center',
-                                    'text-halign': 'center',
-                                    'font-size': '11px'
+                                    'text-outline-width': 1,
+                                    'text-outline-color': '#222'
                                 }
-                            },
-                            {
-                                selector: 'node[label = "DROP"]',
-                                style: { 'background-color': '#dc3545' }
-                            },
-                            {
-                                selector: 'node[label = "ACCEPT"]',
-                                style: { 'background-color': '#198754' }
-                            },
-                            {
-                                selector: 'node[label = "REJECT"]',
-                                style: { 'background-color': '#ffc107', 'color': '#000' }
                             },
                             {
                                 selector: 'edge',
                                 style: {
                                     'width': 2,
-                                    'line-color': '#aaa',
-                                    'target-arrow-color': '#aaa',
+                                    'line-color': '#ff7675',
+                                    'target-arrow-color': '#ff7675',
                                     'target-arrow-shape': 'triangle',
                                     'curve-style': 'bezier',
                                     'label': 'data(label)',
-                                    'font-size': '8px'
+                                    'color': '#ccc',
+                                    'font-size': 9
                                 }
                             }
                         ],
                         layout: {
                             name: 'cose',
                             animate: true,
-                            padding: 25
+                            padding: 20
                         }
                     });
 
                     setTimeout(() => {
                         cy.resize();
                         cy.fit();
-                    }, 150);
-
-                    activeSet = true;
+                    }, 100);
                 });
-
-                // Add Summary tab
-                const tab = document.createElement("li");
-                tab.className = "nav-item";
-                tab.innerHTML = `
-                    <a class="nav-link" data-bs-toggle="tab" href="#tab-summary">Summary</a>
-                `;
-                tabContainer.appendChild(tab);
-
-                const summaryContent = document.createElement("div");
-                summaryContent.className = "tab-pane fade";
-                summaryContent.id = "tab-summary";
-
-                const summaryTable = document.createElement("table");
-                summaryTable.className = "table table-sm table-bordered";
-
-                const tbody = data.summary.map(row => {
-                    const targetSummary = Object.entries(row.targets)
-                        .map(([k, v]) => `${k} (${v})`)
-                        .join(", ");
-
-                    return `
-                        <tr>
-                            <td>${row.table}</td>
-                            <td>${row.chain}</td>
-                            <td>${row.rule_count}</td>
-                            <td>${targetSummary}</td>
-                        </tr>
-                    `;
-                }).join("");
-
-                summaryTable.innerHTML = `
-                    <thead>
-                        <tr>
-                            <th>Table</th>
-                            <th>Chain</th>
-                            <th>Rule Count</th>
-                            <th>Targets</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${tbody}
-                    </tbody>
-                `;
-
-                summaryContent.appendChild(summaryTable);
-                contentContainer.appendChild(summaryContent);
-            })
-            .catch(err => {
-                console.error("❌ Firewall fetch error", err);
-                showToast("❌ Unable to load firewall rules");
-            });
-    });
-
-    new bootstrap.Modal(modalEl).show();
+            }, 300);
+        })
+        .catch(err => {
+            console.error("🔥 Firewall fetch failed:", err);
+            alert("❌ Error loading firewall rules.");
+        });
 }
 
 
