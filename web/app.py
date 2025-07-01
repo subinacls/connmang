@@ -961,17 +961,18 @@ def get_service_info(alias, service):
     except Exception as e:
         return jsonify({"error": str(e)})
 
-@app.route("/api/firewall")
-def get_iptables_flow():
-    import subprocess
+@app.route("/api/firewall/<alias>")
+def get_remote_iptables(alias):
+    alias = unquote(alias)
+    session = ssh_mgr.sessions.get(alias)
+
+    if not session:
+        return jsonify({"error": "No session for alias"})
 
     try:
-        iptables_path = shutil.which("iptables") or "/sbin/iptables"  # fallback
-        result = subprocess.run(
-            ["sudo", iptables_path, "-S"],
-            capture_output=True, text=True, check=True
-        )
-        lines = result.stdout.strip().splitlines()
+        stdin, stdout, stderr = session.exec_command("sudo iptables -S")
+        output = stdout.read().decode()
+        lines = output.strip().splitlines()
 
         elements = []
         chains = set()
@@ -981,17 +982,13 @@ def get_iptables_flow():
                 continue
             parts = line.split()
             chain = parts[1]
-            target = next((p for i, p in enumerate(parts) if p == "-j"), None)
-            jump = parts[parts.index("-j") + 1] if target else "unknown"
-
+            target = parts[parts.index("-j") + 1] if "-j" in parts else "unknown"
             chains.add(chain)
-
-            # Add edge: chain ➜ jump
             elements.append({
                 "data": {
-                    "id": f"{chain}_{jump}",
+                    "id": f"{chain}_{target}",
                     "source": chain,
-                    "target": jump,
+                    "target": target,
                     "label": "jumps to"
                 }
             })
@@ -1005,17 +1002,9 @@ def get_iptables_flow():
 
         return jsonify({"elements": elements})
 
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
         return jsonify({"error": str(e)})
 
-@app.route("/api/firewall/debug")
-def debug_firewall_env():
-    import os, shutil
-    return {
-        "user": os.getlogin(),
-        "PATH": os.environ.get("PATH"),
-        "which_iptables": shutil.which("iptables")
-    }
 
 
 if __name__ == "__main__":
