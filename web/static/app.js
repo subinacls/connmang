@@ -1440,74 +1440,92 @@ function backgroundElevatedSession(alias) {
 }
 
 
-function openFirewallViewer() {
+function openFirewallViewer(alias) {
     const modalEl = document.getElementById("firewallModal");
     const cyContainer = document.getElementById("cy-firewall");
 
-    let cy; // store global
+    let cy;
 
     modalEl.addEventListener("shown.bs.modal", function handler() {
         modalEl.removeEventListener("shown.bs.modal", handler);
 
-        // Force container to have valid size
-        cyContainer.style.height = "600px";
-        cyContainer.style.width = "100%";
-
-        setTimeout(() => {
-            cy = cytoscape({
-                container: cyContainer,
-                elements: [
-                    { data: { id: 'FORWARD' } },
-                    { data: { id: 'DOCKER-USER' } },
-                    {
-                        data: {
-                            id: 'FORWARD_DOCKER-USER',
-                            source: 'FORWARD',
-                            target: 'DOCKER-USER',
-                            label: 'jumps to'
-                        }
-                    }
-                ],
-                style: [
-                    {
-                        selector: 'node',
-                        style: {
-                            'background-color': '#17a2b8',
-                            'label': 'data(id)',
-                            'color': '#fff',
-                            'text-valign': 'center',
-                            'text-halign': 'center',
-                            'font-size': '10px'
-                        }
-                    },
-                    {
-                        selector: 'edge',
-                        style: {
-                            'width': 2,
-                            'line-color': '#aaa',
-                            'target-arrow-color': '#aaa',
-                            'target-arrow-shape': 'triangle',
-                            'curve-style': 'bezier',
-                            'label': 'data(label)',
-                            'font-size': '8px'
-                        }
-                    }
-                ],
-                layout: {
-                    name: 'breadthfirst',
-                    directed: true,
-                    padding: 10
+        // Load remote firewall graph
+        fetch(`/api/firewall/${alias}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    showToast(`❌ ${data.error}`);
+                    return;
                 }
-            });
 
-            cy.resize(); // 🟢 CRITICAL LINE — force canvas to resize after visibility
-            cy.fit();
-        }, 50); // slight delay ensures container is fully styled
+                // Clear previous graph if it exists
+                if (cy) cy.destroy();
+
+                cy = cytoscape({
+                    container: cyContainer,
+                    elements: data.elements,
+                    style: [
+                        {
+                            selector: 'node',
+                            style: {
+                                'background-color': '#0d6efd',
+                                'label': 'data(label)',
+                                'color': '#fff',
+                                'text-valign': 'center',
+                                'text-halign': 'center',
+                                'font-size': '11px'
+                            }
+                        },
+                        {
+                            selector: 'node[label = "DROP"]',
+                            style: {
+                                'background-color': '#dc3545'
+                            }
+                        },
+                        {
+                            selector: 'node[label = "ACCEPT"]',
+                            style: {
+                                'background-color': '#198754'
+                            }
+                        },
+                        {
+                            selector: 'node[label = "REJECT"]',
+                            style: {
+                                'background-color': '#ffc107',
+                                'color': '#000'
+                            }
+                        },
+                        {
+                            selector: 'edge',
+                            style: {
+                                'width': 2,
+                                'line-color': '#aaa',
+                                'target-arrow-color': '#aaa',
+                                'target-arrow-shape': 'triangle',
+                                'curve-style': 'bezier',
+                                'label': 'data(label)',
+                                'font-size': '8px'
+                            }
+                        }
+                    ],
+                    layout: {
+                        name: 'cose',
+                        padding: 20,
+                        animate: true
+                    }
+                });
+
+                cy.resize();
+                cy.fit();
+            })
+            .catch(err => {
+                console.error("❌ Firewall fetch error", err);
+                showToast("❌ Unable to load firewall rules");
+            });
     });
 
     new bootstrap.Modal(modalEl).show();
 }
-
 
 
 

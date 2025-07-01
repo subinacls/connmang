@@ -976,34 +976,42 @@ def get_remote_iptables(alias):
 
         elements = []
         chains = set()
+        jumps = set()
 
         for line in lines:
             if not line.startswith("-A"):
                 continue
             parts = line.split()
             chain = parts[1]
-            target = parts[parts.index("-j") + 1] if "-j" in parts else "unknown"
+            target = None
+            if "-j" in parts:
+                jump_idx = parts.index("-j") + 1
+                if jump_idx < len(parts):
+                    target = parts[jump_idx]
+                    jumps.add(target)
+            if target:
+                elements.append({
+                    "data": {
+                        "id": f"{chain}_{target}",
+                        "source": chain,
+                        "target": target,
+                        "label": "jumps to"
+                    }
+                })
             chains.add(chain)
+
+        # Unique node ids (chains + targets)
+        all_nodes = sorted(chains.union(jumps))
+        for node_id in all_nodes:
             elements.append({
-                "data": {
-                    "id": f"{chain}_{target}",
-                    "source": chain,
-                    "target": target,
-                    "label": "jumps to"
-                }
+                "data": { "id": node_id, "label": node_id }
             })
 
-        # Add nodes
-        for chain in chains:
-            elements.append({"data": {"id": chain, "label": chain}})
-        for e in elements:
-            if "target" in e["data"] and not any(n["data"]["id"] == e["data"]["target"] for n in elements):
-                elements.append({"data": {"id": e["data"]["target"], "label": e["data"]["target"]}})
-
-        return jsonify({"elements": elements})
+        return jsonify({ "elements": elements })
 
     except Exception as e:
         return jsonify({"error": str(e)})
+
 
 
 
