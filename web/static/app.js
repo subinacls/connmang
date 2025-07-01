@@ -689,7 +689,7 @@ function toggleServiceDetails(alias, serviceName, containerId, arrowId) {
 
                                         <button class="btn btn-sm btn-secondary"
                                             style="${isConnected ? 'display:inline-block;' : 'display:none;'}"
-                                            onclick="openFirewallViewer()"
+                                            onclick="openFirewallViewer('${alias}')"
                                             data-bs-toggle="tooltip"
                                             title="Open modal to manager remote systems firewall">
                                             <i class="bi bi-diagram-3"></i> View Firewall Flow
@@ -1440,7 +1440,7 @@ function backgroundElevatedSession(alias) {
 }
 
 
-function openFirewallViewer() {
+function basicFirewallViewer(alias) {
     const modalEl = document.getElementById("firewallModal");
     const cyContainer = document.getElementById("cy-firewall");
 
@@ -1527,5 +1527,135 @@ function openFirewallViewer() {
     new bootstrap.Modal(modalEl).show();
 }
 
+function openFirewallViewer(alias) {
+    const modalEl = document.getElementById("firewallModal");
+    const tabContainer = document.getElementById("firewall-tabs");
+    const contentContainer = document.getElementById("firewall-tab-content");
+
+    modalEl.addEventListener("shown.bs.modal", function handler() {
+        modalEl.removeEventListener("shown.bs.modal", handler);
+        tabContainer.innerHTML = "";
+        contentContainer.innerHTML = "";
+
+        fetch(`/api/firewall/${encodeURIComponent(alias)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    showToast(`❌ ${data.error}`);
+                    return;
+                }
+
+                const tables = Object.keys(data.tables);
+                let activeSet = false;
+
+                tables.forEach(table => {
+                    const cyId = `cy-${table}`;
+                    const tabId = `tab-${table}`;
+
+                    // Nav tab
+                    const tab = document.createElement("li");
+                    tab.className = "nav-item";
+                    tab.innerHTML = `
+                        <a class="nav-link${!activeSet ? ' active' : ''}" data-bs-toggle="tab" href="#${tabId}">${table}</a>
+                    `;
+                    tabContainer.appendChild(tab);
+
+                    // Tab pane
+                    const content = document.createElement("div");
+                    content.className = `tab-pane fade${!activeSet ? ' show active' : ''}`;
+                    content.id = tabId;
+                    content.innerHTML = `<div id="${cyId}" style="height: 500px;"></div>`;
+                    contentContainer.appendChild(content);
+
+                    const cy = cytoscape({
+                        container: document.getElementById(cyId),
+                        elements: data.tables[table],
+                        style: [
+                            {
+                                selector: 'node',
+                                style: {
+                                    'background-color': '#0d6efd',
+                                    'label': 'data(label)',
+                                    'color': '#fff',
+                                    'text-valign': 'center',
+                                    'text-halign': 'center',
+                                    'font-size': '11px'
+                                }
+                            },
+                            {
+                                selector: 'node[label = "DROP"]',
+                                style: { 'background-color': '#dc3545' }
+                            },
+                            {
+                                selector: 'node[label = "ACCEPT"]',
+                                style: { 'background-color': '#198754' }
+                            },
+                            {
+                                selector: 'node[label = "REJECT"]',
+                                style: { 'background-color': '#ffc107', 'color': '#000' }
+                            },
+                            {
+                                selector: 'edge',
+                                style: {
+                                    'width': 2,
+                                    'line-color': '#aaa',
+                                    'target-arrow-color': '#aaa',
+                                    'target-arrow-shape': 'triangle',
+                                    'curve-style': 'bezier',
+                                    'label': 'data(label)',
+                                    'font-size': '8px'
+                                }
+                            }
+                        ],
+                        layout: {
+                            name: 'cose',
+                            animate: true,
+                            padding: 25
+                        }
+                    });
+
+                    cy.resize();
+                    cy.fit();
+
+                    activeSet = true;
+                });
+
+                // Add Summary tab
+                const tab = document.createElement("li");
+                tab.className = "nav-item";
+                tab.innerHTML = `
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab-summary">Summary</a>
+                `;
+                tabContainer.appendChild(tab);
+
+                const summaryContent = document.createElement("div");
+                summaryContent.className = "tab-pane fade";
+                summaryContent.id = "tab-summary";
+
+                const summaryTable = document.createElement("table");
+                summaryTable.className = "table table-sm table-bordered";
+                summaryTable.innerHTML = \`
+                    <thead><tr><th>Table</th><th>Chain</th><th>Rule Count</th><th>Targets</th></tr></thead>
+                    <tbody>\${data.summary.map(row => \`
+                        <tr>
+                            <td>\${row.table}</td>
+                            <td>\${row.chain}</td>
+                            <td>\${row.rule_count}</td>
+                            <td>\${Object.entries(row.targets).map(([k,v]) => \`\${k} (\${v})\`).join(", ")}</td>
+                        </tr>
+                    \`).join("")}</tbody>
+                \`;
+
+                summaryContent.appendChild(summaryTable);
+                contentContainer.appendChild(summaryContent);
+            })
+            .catch(err => {
+                console.error("❌ Firewall fetch error", err);
+                showToast("❌ Unable to load firewall rules");
+            });
+    });
+
+    new bootstrap.Modal(modalEl).show();
+}
 
 

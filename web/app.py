@@ -931,7 +931,6 @@ def perform_service_action(alias):
 
 @app.route("/api/ssh/<alias>/service_info/<service>")
 def get_service_info(alias, service):
-    from urllib.parse import unquote
     alias = unquote(alias)
     service = unquote(service)
     session = ssh_mgr.sessions.get(alias)
@@ -961,11 +960,9 @@ def get_service_info(alias, service):
     except Exception as e:
         return jsonify({"error": str(e)})
 
-@app.route("/api/firewall/<alias>")
+@app.route("/api/firewall-brief/<alias>")
 def get_remote_iptables(alias):
-    from urllib.parse import unquote
     alias = unquote(alias)
-    service = unquote(service)
     session = ssh_mgr.sessions.get(alias)
 
     if not session:
@@ -1010,6 +1007,80 @@ def get_remote_iptables(alias):
             })
 
         return jsonify({ "elements": elements })
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+@app.route("/api/firewall/<alias>")
+def get_full_iptables_graph(alias):
+    alias = unquote(alias)
+    session = ssh_mgr.sessions.get(alias)
+
+    if not session:
+        return jsonify({"error": "No session for alias"})
+
+    try:
+        stdin, stdout, stderr = session.exec_command("sudo iptables-save")
+        output = stdout.read().decode()
+        lines = output.strip().splitlines()
+
+        tables = {}
+        current_table = None
+        chains = set()
+        jumps = set()
+        summary = {}
+
+        for line in lines:
+            if line.startswith("*"):
+                current_table = line[1:].strip()
+                tables[current_table] = []
+            elif line == "COMMIT":
+                current_table = None
+            elif line.startswith("-A") and current_table:
+                parts = line.split()
+                chain = parts[1]
+                target = None
+                if "-j" in parts:
+                    idx = parts.index("-j")
+                    if idx + 1 < len(parts):
+                        target = parts[idx + 1]
+                        jumps.add(target)
+                if target:
+                    tables[current_table].append({
+                        "data": {
+                            "id": f"{current_table}_{chain}_{target}",
+                            "source": chain,
+                            "target": target,
+                            "label": f"{chain} ➜ {target}"
+                        }
+                    })
+                chains.add(chain)
+                summary.setdefault(current_table, {}).setdefault(chain, []).append(target or "N/A")
+
+        # Add nodes per table
+        for table, edges in tables.items():
+            nodes = set()
+            for e in edges:
+                nodes.add(e["data"]["source"])
+                nodes.add(e["data"]["target"])
+            for node_id in sorted(nodes):
+                tables[table].append({"data": { "id": node_id, "label": node_id }})
+
+        # Build summary table
+        summary_data = []
+        for table, chains in summary.items():
+            for chain, targets in chains.items():
+                counts = {}
+                for t in targets:
+                    counts[t] = counts.get(t, 0) + 1
+                summary_data.append({
+                    "table": table,
+                    "chain": chain,
+                    "rule_count": len(targets),
+                    "targets": counts
+                })
+
+        return jsonify({ "tables": tables, "summary": summary_data })
 
     except Exception as e:
         return jsonify({"error": str(e)})
