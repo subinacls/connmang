@@ -963,6 +963,9 @@ def get_service_info(alias, service):
 
 @app.route("/api/firewall/<alias>")
 def get_remote_iptables(alias):
+    from urllib.parse import unquote
+    alias = unquote(alias)
+    service = unquote(service)
     session = ssh_mgr.sessions.get(alias)
 
     if not session:
