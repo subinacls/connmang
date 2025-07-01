@@ -1440,7 +1440,7 @@ function backgroundElevatedSession(alias) {
 }
 
 
-function openFirewallViewer(alias) {
+function openFirewallViewer() {
     const modalEl = document.getElementById("firewallModal");
     const cyContainer = document.getElementById("cy-firewall");
 
