@@ -482,6 +482,7 @@ function openServiceModal(alias) {
         alert("Modal not loaded in the page. Check template.");
         return;
     }
+
     fetch(`/api/ssh/${alias}/services`)
         .then(res => res.json())
         .then(services => {
