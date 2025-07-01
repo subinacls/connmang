@@ -602,7 +602,7 @@ function openServiceModal(alias) {
                                     <div class="mt-2 d-grid gap-2">
 
                                         <button id="serviceaction-btn-${alias}" class="btn btn-sm btn-warning me-2 w-100"
-                                            style="display:inline-block;"                                            onclick="openServiceModal('${alias}')"
+                                            style="display:inline-block"
                                             data-bs-toggle="tooltip"
                                             title="Open modal to manage remote systems services">
                                               Manage Remote Services
