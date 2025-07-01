@@ -466,6 +466,15 @@ function toggleCardBody(event, alias) {
     collapseInstance.toggle();
 }
 
+function showToast(msg) {
+    const toastBody = document.getElementById("toast-body");
+    toastBody.textContent = msg;
+
+    const toastEl = document.getElementById("service-toast");
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+}
+
 function openServiceModal(alias) {
     const container = document.getElementById("service-list");
     if (!container) {
@@ -696,7 +705,9 @@ function openServiceModal(alias) {
     
 
 function remoteserviceAction(alias, service, action) {
-    console.log(`➡️ Sending action: ${action} for ${service} on ${alias}`);
+    const modalElement = document.getElementById("serviceModal");
+    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+
     fetch(`/api/ssh/${alias}/service_action`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -704,19 +715,25 @@ function remoteserviceAction(alias, service, action) {
     })
     .then(res => res.json())
     .then(result => {
-        console.log("✅ Action response:", result);
         if (result.status === "ok") {
-            alert(`${action} executed on ${service}`);
-            openServiceModal(alias); // 🔁 Reload services after success
+            showToast(`✅ ${action} successful on ${service}`);
+            // Close and reopen to reset backdrop properly
+            if (modalInstance) {
+                modalInstance.hide();
+                setTimeout(() => openServiceModal(alias), 500); // Delay to let modal fully close
+            } else {
+                openServiceModal(alias);
+            }
         } else {
-            alert(`❌ Failed to ${action} ${service}: ${result.message || "Unknown error"}`);
+            showToast(`❌ Failed to ${action} ${service}`);
         }
     })
     .catch(err => {
         console.error("❌ Request failed:", err);
-        alert(`❌ Network error during ${action} of ${service}`);
+        showToast(`❌ Network error during ${action}`);
     });
 }
+
 
 function attach(alias, elevate = false) {
     if (term) term.dispose();
