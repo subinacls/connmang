@@ -1449,50 +1449,58 @@ function openFirewallViewer(alias) {
                 return;
             }
 
-            const elements = data.elements;
-
-            const cy = cytoscape({
-                container: document.getElementById("cy-firewall"),
-                elements: elements,
-                style: [
-                    {
-                        selector: 'node',
-                        style: {
-                            'background-color': '#17a2b8',
-                            'label': 'data(label)',
-                            'color': '#fff',
-                            'text-valign': 'center',
-                            'text-halign': 'center',
-                            'font-size': '10px'
+            // Save elements for when modal is ready
+            const renderCytoscape = () => {
+                cytoscape({
+                    container: document.getElementById("cy-firewall"),
+                    elements: data.elements,
+                    style: [
+                        {
+                            selector: 'node',
+                            style: {
+                                'background-color': '#17a2b8',
+                                'label': 'data(label)',
+                                'color': '#fff',
+                                'text-valign': 'center',
+                                'text-halign': 'center',
+                                'font-size': '10px'
+                            }
+                        },
+                        {
+                            selector: 'edge',
+                            style: {
+                                'width': 2,
+                                'line-color': '#aaa',
+                                'target-arrow-color': '#aaa',
+                                'target-arrow-shape': 'triangle',
+                                'curve-style': 'bezier',
+                                'label': 'data(label)',
+                                'font-size': '8px',
+                                'text-background-color': '#000',
+                                'text-background-opacity': 0.5,
+                                'text-background-padding': '2px'
+                            }
                         }
-                    },
-                    {
-                        selector: 'edge',
-                        style: {
-                            'width': 2,
-                            'line-color': '#aaa',
-                            'target-arrow-color': '#aaa',
-                            'target-arrow-shape': 'triangle',
-                            'curve-style': 'bezier',
-                            'label': 'data(label)',
-                            'font-size': '8px',
-                            'text-background-color': '#000',
-                            'text-background-opacity': 0.5,
-                            'text-background-padding': '2px'
-                        }
+                    ],
+                    layout: {
+                        name: 'breadthfirst',
+                        directed: true,
+                        padding: 10
                     }
-                ],
-                layout: {
-                    name: 'breadthfirst',
-                    directed: true,
-                    padding: 10
-                }
+                });
+            };
+
+            const modalEl = document.getElementById("firewallModal");
+            modalEl.addEventListener("shown.bs.modal", function handler() {
+                renderCytoscape();
+                modalEl.removeEventListener("shown.bs.modal", handler);  // cleanup
             });
 
-            new bootstrap.Modal(document.getElementById("firewallModal")).show();
+            new bootstrap.Modal(modalEl).show();
         })
         .catch(err => {
-            console.error("❌ Failed to load firewall data:", err);
-            showToast("❌ Firewall data error");
+            console.error("❌ Firewall viewer failed:", err);
+            showToast("❌ Could not load firewall viewer");
         });
 }
+
