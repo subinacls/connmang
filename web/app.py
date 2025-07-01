@@ -12,6 +12,7 @@ import stat
 import os
 import json
 import socket
+import shutil
 from datetime import datetime
 
 from core.ssh_manager import SSHManager
@@ -961,18 +962,60 @@ def get_service_info(alias, service):
         return jsonify({"error": str(e)})
 
 @app.route("/api/firewall")
-def get_iptables_rules():
+def get_iptables_flow():
     import subprocess
 
     try:
+        iptables_path = shutil.which("iptables") or "/sbin/iptables"  # fallback
         result = subprocess.run(
-            ["sudo", "iptables", "-S"], capture_output=True, text=True, check=True
+            ["sudo", iptables_path, "-S"],
+            capture_output=True, text=True, check=True
         )
         lines = result.stdout.strip().splitlines()
-        return jsonify({"rules": lines})
-    except subprocess.CalledProcessError as e:
-        return jsonify({"error": str(e), "output": e.output})
 
+        elements = []
+        chains = set()
+
+        for line in lines:
+            if not line.startswith("-A"):
+                continue
+            parts = line.split()
+            chain = parts[1]
+            target = next((p for i, p in enumerate(parts) if p == "-j"), None)
+            jump = parts[parts.index("-j") + 1] if target else "unknown"
+
+            chains.add(chain)
+
+            # Add edge: chain ➜ jump
+            elements.append({
+                "data": {
+                    "id": f"{chain}_{jump}",
+                    "source": chain,
+                    "target": jump,
+                    "label": "jumps to"
+                }
+            })
+
+        # Add nodes
+        for chain in chains:
+            elements.append({"data": {"id": chain, "label": chain}})
+        for e in elements:
+            if "target" in e["data"] and not any(n["data"]["id"] == e["data"]["target"] for n in elements):
+                elements.append({"data": {"id": e["data"]["target"], "label": e["data"]["target"]}})
+
+        return jsonify({"elements": elements})
+
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": str(e)})
+
+@app.route("/api/firewall/debug")
+def debug_firewall_env():
+    import os, shutil
+    return {
+        "user": os.getlogin(),
+        "PATH": os.environ.get("PATH"),
+        "which_iptables": shutil.which("iptables")
+    }
 
 
 if __name__ == "__main__":

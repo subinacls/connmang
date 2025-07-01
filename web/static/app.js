@@ -692,8 +692,9 @@ function toggleServiceDetails(alias, serviceName, containerId, arrowId) {
                                             onclick="openFirewallViewer()"
                                             data-bs-toggle="tooltip"
                                             title="Open modal to manager remote systems firewall">
-                                            <i class="bi bi-shield-lock-fill"></i> View Firewall
+                                            <i class="bi bi-diagram-3"></i> View Firewall Flow
                                         </button>
+                                
 
                                         <button id="keyaction-btn-${alias}" class="btn btn-sm btn-secondary me-2 w-100"
                                             style="${isConnected ? 'display:inline-block;' : 'display:none;'}"
@@ -1460,5 +1461,62 @@ function openFirewallViewer() {
             html += "</tbody></table>";
             document.getElementById("firewall-modal-body").innerHTML = html;
             new bootstrap.Modal(document.getElementById("firewallModal")).show();
+        });
+}
+
+function openFirewallViewer() {
+    fetch("/api/firewall")
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                showToast(`❌ ${data.error}`);
+                return;
+            }
+
+            const elements = data.elements;
+
+            const cy = cytoscape({
+                container: document.getElementById("cy-firewall"),
+                elements: elements,
+                style: [
+                    {
+                        selector: 'node',
+                        style: {
+                            'background-color': '#17a2b8',
+                            'label': 'data(label)',
+                            'color': '#fff',
+                            'text-valign': 'center',
+                            'text-halign': 'center',
+                            'font-size': '10px'
+                        }
+                    },
+                    {
+                        selector: 'edge',
+                        style: {
+                            'width': 2,
+                            'line-color': '#aaa',
+                            'target-arrow-color': '#aaa',
+                            'target-arrow-shape': 'triangle',
+                            'curve-style': 'bezier',
+                            'label': 'data(label)',
+                            'font-size': '8px',
+                            'text-background-color': '#000',
+                            'text-background-opacity': 0.5,
+                            'text-background-padding': '2px'
+                        }
+                    }
+                ],
+                layout: {
+                    name: 'breadthfirst',
+                    directed: true,
+                    padding: 10
+                }
+            });
+
+            new bootstrap.Modal(document.getElementById("firewallModal")).show();
+        })
+        .catch(err => {
+            console.error("❌ Failed to load firewall data:", err);
+            showToast("❌ Firewall data error");
         });
 }

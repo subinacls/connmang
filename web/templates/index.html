@@ -11,6 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.min.js"></script>
+    <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
     <script src="/static/app.js"></script>
     <style>
         .collapse { transition: all 0.3s ease; }
@@ -272,6 +273,19 @@
                 </div>
                 <div class="modal-body" id="firewall-modal-body">
                     <!-- Fetched content goes here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="firewallModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header">
+                    <h5 class="modal-title">Firewall Flow Diagram</h5>
+                    <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="cy-firewall" style="height: 600px; width: 100%;"></div>
                 </div>
             </div>
         </div>
