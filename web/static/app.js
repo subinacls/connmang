@@ -1441,66 +1441,61 @@ function backgroundElevatedSession(alias) {
 
 
 function openFirewallViewer(alias) {
-    fetch(`/api/firewall/${alias}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.error) {
-                showToast(`❌ ${data.error}`);
-                return;
-            }
+    const modalEl = document.getElementById("firewallModal");
 
-            // Save elements for when modal is ready
-            const renderCytoscape = () => {
-                cytoscape({
-                    container: document.getElementById("cy-firewall"),
-                    elements: data.elements,
-                    style: [
-                        {
-                            selector: 'node',
-                            style: {
-                                'background-color': '#17a2b8',
-                                'label': 'data(label)',
-                                'color': '#fff',
-                                'text-valign': 'center',
-                                'text-halign': 'center',
-                                'font-size': '10px'
-                            }
-                        },
-                        {
-                            selector: 'edge',
-                            style: {
-                                'width': 2,
-                                'line-color': '#aaa',
-                                'target-arrow-color': '#aaa',
-                                'target-arrow-shape': 'triangle',
-                                'curve-style': 'bezier',
-                                'label': 'data(label)',
-                                'font-size': '8px',
-                                'text-background-color': '#000',
-                                'text-background-opacity': 0.5,
-                                'text-background-padding': '2px'
-                            }
-                        }
-                    ],
-                    layout: {
-                        name: 'breadthfirst',
-                        directed: true,
-                        padding: 10
+    modalEl.addEventListener("shown.bs.modal", function handler() {
+        modalEl.removeEventListener("shown.bs.modal", handler); // prevent repeat
+
+        const cy = cytoscape({
+            container: document.getElementById("cy-firewall"),
+            elements: [
+                { data: { id: 'FORWARD' } },
+                { data: { id: 'DOCKER-USER' } },
+                {
+                    data: {
+                        id: 'FORWARD_DOCKER-USER',
+                        source: 'FORWARD',
+                        target: 'DOCKER-USER',
+                        label: 'jumps to'
                     }
-                });
-            };
-
-            const modalEl = document.getElementById("firewallModal");
-            modalEl.addEventListener("shown.bs.modal", function handler() {
-                renderCytoscape();
-                modalEl.removeEventListener("shown.bs.modal", handler);  // cleanup
-            });
-
-            new bootstrap.Modal(modalEl).show();
-        })
-        .catch(err => {
-            console.error("❌ Firewall viewer failed:", err);
-            showToast("❌ Could not load firewall viewer");
+                }
+            ],
+            style: [
+                {
+                    selector: 'node',
+                    style: {
+                        'background-color': '#17a2b8',
+                        'label': 'data(id)',
+                        'color': '#fff',
+                        'text-valign': 'center',
+                        'text-halign': 'center',
+                        'font-size': '10px'
+                    }
+                },
+                {
+                    selector: 'edge',
+                    style: {
+                        'width': 2,
+                        'line-color': '#aaa',
+                        'target-arrow-color': '#aaa',
+                        'target-arrow-shape': 'triangle',
+                        'curve-style': 'bezier',
+                        'label': 'data(label)',
+                        'font-size': '8px'
+                    }
+                }
+            ],
+            layout: {
+                name: 'breadthfirst',
+                directed: true,
+                padding: 10
+            }
         });
+
+        cy.fit(); // zoom to fit view
+    });
+
+    new bootstrap.Modal(modalEl).show();
 }
+
 
