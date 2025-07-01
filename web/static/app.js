@@ -689,7 +689,7 @@ function toggleServiceDetails(alias, serviceName, containerId, arrowId) {
 
                                         <button class="btn btn-sm btn-secondary"
                                             style="${isConnected ? 'display:inline-block;' : 'display:none;'}"
-                                            onclick="openFirewallViewer()">
+                                            onclick="openFirewallViewer()"
                                             data-bs-toggle="tooltip"
                                             title="Open modal to manager remote systems firewall">
                                             <i class="bi bi-shield-lock-fill"></i> View Firewall
