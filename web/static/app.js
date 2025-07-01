@@ -1444,22 +1444,55 @@ function openFirewallViewer() {
     const modalEl = document.getElementById("firewallModal");
     const cyContainer = document.getElementById("cy-firewall");
 
+    let cy; // store global
+
     modalEl.addEventListener("shown.bs.modal", function handler() {
         modalEl.removeEventListener("shown.bs.modal", handler);
 
-        // Confirm container is visible
-        console.log("🔥 Modal shown. Container size:", cyContainer.clientWidth, cyContainer.clientHeight);
+        // Force container to have valid size
+        cyContainer.style.height = "600px";
+        cyContainer.style.width = "100%";
 
-        // Delay actual render slightly
         setTimeout(() => {
-            const cy = cytoscape({
+            cy = cytoscape({
                 container: cyContainer,
                 elements: [
                     { data: { id: 'FORWARD' } },
                     { data: { id: 'DOCKER-USER' } },
-                    { data: { id: 'FORWARD_DOCKER-USER', source: 'FORWARD', target: 'DOCKER-USER', label: 'jumps to' } }
+                    {
+                        data: {
+                            id: 'FORWARD_DOCKER-USER',
+                            source: 'FORWARD',
+                            target: 'DOCKER-USER',
+                            label: 'jumps to'
+                        }
+                    }
                 ],
-                style: [ /* same styles as before */ ],
+                style: [
+                    {
+                        selector: 'node',
+                        style: {
+                            'background-color': '#17a2b8',
+                            'label': 'data(id)',
+                            'color': '#fff',
+                            'text-valign': 'center',
+                            'text-halign': 'center',
+                            'font-size': '10px'
+                        }
+                    },
+                    {
+                        selector: 'edge',
+                        style: {
+                            'width': 2,
+                            'line-color': '#aaa',
+                            'target-arrow-color': '#aaa',
+                            'target-arrow-shape': 'triangle',
+                            'curve-style': 'bezier',
+                            'label': 'data(label)',
+                            'font-size': '8px'
+                        }
+                    }
+                ],
                 layout: {
                     name: 'breadthfirst',
                     directed: true,
@@ -1467,12 +1500,14 @@ function openFirewallViewer() {
                 }
             });
 
+            cy.resize(); // 🟢 CRITICAL LINE — force canvas to resize after visibility
             cy.fit();
-        }, 100);
+        }, 50); // slight delay ensures container is fully styled
     });
 
     new bootstrap.Modal(modalEl).show();
 }
+
 
 
 
