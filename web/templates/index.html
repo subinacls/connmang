@@ -14,18 +14,14 @@
     <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
     <script src="/static/app.js"></script>
     <style>
+        .cy-firewall { height: 600px; width: 100%; background: #121212; }
         .collapse { transition: all 0.3s ease; }
         .bg-success { background-color: #198754 !important; }
         .bg-danger { background-color: #dc3545 !important; }
         .bg-warning { background-color: #ffc107 !important; color: #212529 !important; }
         .bg-secondary { background-color: #6c757d !important; }
-        .btn-sm {
-            padding: 2px 6px;
-            font-size: 0.8rem;
-        }
-        .profile-card .collapse {
-            transition: height 0.25s ease;
-        }
+        .btn-sm { padding: 2px 6px; font-size: 0.8rem; }
+        .profile-card .collapse { transition: height 0.25s ease; }
         .delete-tab {
             position: absolute;
             top: 0;
@@ -50,19 +46,8 @@
             display: none;
             z-index: 9999;
         }
-        #terminal {
-            margin: auto;
-            margin-top: 2rem;
-            padding: 1rem;
-            background-color: black;
-            width: 90%;
-            height: 80%;
-            border: 2px solid #ccc;
-        }
-        #profileList .card {
-            width: 80%;
-            max-width: 600px;
-        }
+        .terminal { margin: auto; margin-top: 2rem; padding: 1rem; background-color: black; width: 90%; height: 80%; border: 2px solid #ccc; }
+        .profileList .card { width: 80%; max-width: 600px; }
     </style>
 </head>
 <body class="bg-dark text-white">
