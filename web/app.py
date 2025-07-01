@@ -893,12 +893,16 @@ def run_b64_script(alias: str, data: dict):
     except Exception as e:
         return {"error": str(e)}
 
-@app.route("/api/ssh/<alias>/services", methods=["GET"])
-async def get_services(alias: str):
+@app.get("/api/ssh/<alias>/services")
+def get_services(alias: str):
     alias = unquote(alias)
+    print(f"🔍 Fetching services for alias: {alias}")
     try:
-        return ssh_mgr.list_services(alias)
+        result = ssh_mgr.list_services(alias)
+        print(f"✅ Services: {result}")
+        return result
     except Exception as e:
+        print(f"❌ Error fetching services: {e}")
         return {"error": str(e)}
 
 @app.route("/api/ssh/<alias>/service_action", methods=["POST"])
@@ -906,11 +910,24 @@ def perform_service_action(alias):
     data = request.get_json()
     service = data.get("service")
     action = data.get("action")
-    if not service or not action:
-        return jsonify({"error": "Invalid parameters"}), 400
 
-    result = ssh_mgr.control_service(alias, service, action)
-    return jsonify({"status": "ok" if result else "fail"})
+    if not service or not action:
+        return jsonify({"status": "error", "message": "Missing service or action"}), 400
+
+    try:
+        print(f"🔧 Attempting {action} on {service} via {alias}")
+        result = ssh_mgr.control_service(alias, service, action)
+
+        if result:
+            print(f"✅ {action} {service} on {alias} succeeded")
+            return jsonify({"status": "ok"})
+        else:
+            print(f"❌ {action} {service} on {alias} failed")
+            return jsonify({"status": "error", "message": f"{action} failed"}), 500
+    except Exception as e:
+        print(f"🔥 Exception during {action} of {service} on {alias}: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5050, debug=True)

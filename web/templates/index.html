@@ -12,6 +12,10 @@
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.min.js"></script>
     <script src="/static/app.js"></script>
     <style>
+        .bg-success { background-color: #198754 !important; }
+        .bg-danger { background-color: #dc3545 !important; }
+        .bg-warning { background-color: #ffc107 !important; color: #212529 !important; }
+        .bg-secondary { background-color: #6c757d !important; }
         .btn-sm {
             padding: 2px 6px;
             font-size: 0.8rem;
@@ -238,18 +242,18 @@
     </div>
     <!-- Service Modal -->
     <div class="modal fade" id="serviceModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-            <h5 class="modal-title">Service Manager</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Service Manager</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="service-list" class="w-100">
+                        <!-- JS injects here -->
+                    </div>
+                </div>
             </div>
-            <div class="modal-body">
-            <div id="service-list">
-                <!-- Will be populated by openServiceModal -->
-            </div>
-            </div>
-        </div>
         </div>
     </div>
 </body>

@@ -463,7 +463,7 @@ class SSHManager:
             return []
 
         try:
-            stdin, stdout, stderr = session.client.exec_command(
+            stdin, stdout, stderr = session.exec_command(
                 "systemctl list-units --type=service --all --no-pager --no-legend"
             )
             output = stdout.read().decode()
@@ -484,13 +484,27 @@ class SSHManager:
     def control_service(self, alias, service_name, action):
         session = self.sessions.get(alias)
         if not session:
+            print(f"❌ No session for alias {alias}")
             return False
+
         if action not in ("start", "stop", "restart"):
+            print(f"❌ Invalid action: {action}")
             return False
+
         try:
             command = f"sudo systemctl {action} {service_name}"
-            stdin, stdout, stderr = session.client.exec_command(command)
-            return stdout.channel.recv_exit_status() == 0
+            print(f"🔧 Running: {command}")
+            stdin, stdout, stderr = session.exec_command(command)
+
+            exit_code = stdout.channel.recv_exit_status()  # ✅ FIXED
+            print(f"✅ Exit code: {exit_code}")
+
+            stderr_output = stderr.read().decode()
+            if stderr_output:
+                print("STDERR:", stderr_output)
+
+            return exit_code == 0
         except Exception as e:
-            print(f"Failed to {action} {service_name} on {alias}: {e}")
+            print(f"🔥 Exception during {action} on {service_name}: {e}")
             return False
+

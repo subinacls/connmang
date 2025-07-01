@@ -476,6 +476,7 @@ function openServiceModal(alias) {
     fetch(`/api/ssh/${alias}/services`)
         .then(res => res.json())
         .then(services => {
+            console.log("✅ Received service list:", services);
             if (!Array.isArray(services)) {
                 console.warn("⚠️ Service list not an array:", services);
                 alert("❌ Failed to fetch services.");
@@ -485,9 +486,9 @@ function openServiceModal(alias) {
             let html = "<ul class='list-group'>";
             services.forEach(svc => {
                 const controls = svc.status === "running"
-                    ? `<button class="btn btn-sm btn-danger" onclick="serviceAction('${alias}', '${svc.name}', 'stop')">Stop</button>
-                       <button class="btn btn-sm btn-secondary" onclick="serviceAction('${alias}', '${svc.name}', 'restart')">Restart</button>`
-                    : `<button class="btn btn-sm btn-success" onclick="serviceAction('${alias}', '${svc.name}', 'start')">Start</button>`;
+                    ? `<button class="btn btn-sm btn-danger" onclick="remoteserviceAction('${alias}', '${svc.name}', 'stop')">Stop</button>
+                       <button class="btn btn-sm btn-secondary" onclick="remoteserviceAction('${alias}', '${svc.name}', 'restart')">Restart</button>`
+                    : `<button class="btn btn-sm btn-success" onclick="remoteserviceAction('${alias}', '${svc.name}', 'start')">Start</button>`;
                 html += `<li class='list-group-item d-flex justify-content-between align-items-center'>
                             ${svc.name} - <strong>${svc.status}</strong>
                             <div>${controls}</div>
@@ -691,7 +692,11 @@ function openServiceModal(alias) {
     }
 
 
-function serviceAction(alias, service, action) {
+
+    
+
+function remoteserviceAction(alias, service, action) {
+    console.log(`➡️ Sending action: ${action} for ${service} on ${alias}`);
     fetch(`/api/ssh/${alias}/service_action`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -699,15 +704,19 @@ function serviceAction(alias, service, action) {
     })
     .then(res => res.json())
     .then(result => {
+        console.log("✅ Action response:", result);
         if (result.status === "ok") {
             alert(`${action} executed on ${service}`);
+            openServiceModal(alias); // 🔁 Reload services after success
         } else {
-            alert(`Failed to ${action} ${service}`);
+            alert(`❌ Failed to ${action} ${service}: ${result.message || "Unknown error"}`);
         }
+    })
+    .catch(err => {
+        console.error("❌ Request failed:", err);
+        alert(`❌ Network error during ${action} of ${service}`);
     });
 }
-    
-
 
 function attach(alias, elevate = false) {
     if (term) term.dispose();
