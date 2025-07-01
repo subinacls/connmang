@@ -1080,7 +1080,11 @@ def get_full_iptables_graph(alias):
                     "targets": counts
                 })
 
-        return jsonify({ "tables": tables, "summary": summary_data })
+        return jsonify({
+            "tables": tables,
+            "summary": summary_data,
+            "raw_rules": lines
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)})

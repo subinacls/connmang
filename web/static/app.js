@@ -1566,7 +1566,17 @@ function openFirewallViewer(alias) {
                     <button class="nav-link ${tableNames.length === 0 ? "active" : ""}" data-bs-toggle="tab" data-bs-target="#tab-summary">
                         Summary
                     </button>
-                </li>`;
+                </li>
+            `;
+            tabs.innerHTML += `
+                <li class="nav-item">
+                    <button class="nav-link"
+                            data-bs-toggle="tab"
+                            data-bs-target="#tab-details">
+                        Details
+                    </button>
+                </li>
+            `;
             content.innerHTML += `
                 <div class="tab-pane fade" id="tab-summary">
                     <table class="table table-bordered table-sm table-dark">
@@ -1581,8 +1591,20 @@ function openFirewallViewer(alias) {
                                 </tr>`).join("")}
                         </tbody>
                     </table>
-                </div>`;
+                </div>
+            `;
 
+            // fallback to empty array if raw_rules is missing
+            const rawLines = Array.isArray(data.raw_rules) ? data.raw_rules : [];
+            content.innerHTML += `
+                <div class="tab-pane fade" id="tab-details">
+                    <pre id="firewall-details"
+                        class="small bg-black text-light p-2 rounded"
+                        style="max-height:400px; overflow:auto;">${escapeHTML(rawLines.join("\n"))}
+                    </pre>
+                </div>
+            `;
+            
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById("firewallModal"));
             modal.show();
