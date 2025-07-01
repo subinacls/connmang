@@ -687,6 +687,14 @@ function toggleServiceDetails(alias, serviceName, containerId, arrowId) {
                                             <i class="bi bi-gear-fill"></i> Manage Remote Services
                                         </button>
 
+                                        <button class="btn btn-sm btn-secondary"
+                                            style="${isConnected ? 'display:inline-block;' : 'display:none;'}"
+                                            onclick="openFirewallViewer()">
+                                            data-bs-toggle="tooltip"
+                                            title="Open modal to manager remote systems firewall">
+                                            <i class="bi bi-shield-lock-fill"></i> View Firewall
+                                        </button>
+
                                         <button id="keyaction-btn-${alias}" class="btn btn-sm btn-secondary me-2 w-100"
                                             style="${isConnected ? 'display:inline-block;' : 'display:none;'}"
                                             onclick="openKeyManagerModal('${alias}')"
@@ -1428,4 +1436,29 @@ function backgroundElevatedSession(alias) {
             }
         });
     }
+}
+
+function openFirewallViewer() {
+    fetch("/api/firewall")
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert("Failed to load firewall rules");
+                return;
+            }
+
+            const rules = data.rules;
+            let html = `<table class="table table-dark table-sm table-bordered">
+                <thead><tr><th>Chain</th><th>Rule</th></tr></thead><tbody>`;
+
+            rules.forEach(rule => {
+                const chainMatch = rule.match(/^-A (\w+)/);
+                const chain = chainMatch ? chainMatch[1] : "unknown";
+                html += `<tr><td><span class="badge bg-primary">${chain}</span></td><td><code>${rule}</code></td></tr>`;
+            });
+
+            html += "</tbody></table>";
+            document.getElementById("firewall-modal-body").innerHTML = html;
+            new bootstrap.Modal(document.getElementById("firewallModal")).show();
+        });
 }

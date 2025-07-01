@@ -960,6 +960,19 @@ def get_service_info(alias, service):
     except Exception as e:
         return jsonify({"error": str(e)})
 
+@app.route("/api/firewall")
+def get_iptables_rules():
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["sudo", "iptables", "-S"], capture_output=True, text=True, check=True
+        )
+        lines = result.stdout.strip().splitlines()
+        return jsonify({"rules": lines})
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": str(e), "output": e.output})
+
 
 
 if __name__ == "__main__":
