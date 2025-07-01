@@ -928,6 +928,39 @@ def perform_service_action(alias):
         print(f"🔥 Exception during {action} of {service} on {alias}: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/api/ssh/<alias>/service_info/<service>")
+def get_service_info(alias, service):
+    from urllib.parse import unquote
+    alias = unquote(alias)
+    service = unquote(service)
+    session = ssh_mgr.sessions.get(alias)
+
+    if not session:
+        return jsonify({"error": "No session for alias"})
+
+    try:
+        stdin, stdout, stderr = session.exec_command(f"systemctl status {service}")
+        status_output = stdout.read().decode()
+
+        stdin, stdout, stderr = session.exec_command(f"systemctl show -p FragmentPath {service}")
+        fragment_path_line = stdout.read().decode().strip()
+        fragment_path = fragment_path_line.split('=', 1)[1] if '=' in fragment_path_line else None
+
+        service_file_content = ""
+        if fragment_path:
+            stdin, stdout, stderr = session.exec_command(f"cat '{fragment_path}'")
+            service_file_content = stdout.read().decode()
+
+        return jsonify({
+            "status_output": status_output,
+            "file_path": fragment_path,
+            "file_content": service_file_content
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5050, debug=True)

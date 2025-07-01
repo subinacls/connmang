@@ -12,6 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.min.js"></script>
     <script src="/static/app.js"></script>
     <style>
+        .collapse { transition: all 0.3s ease; }
         .bg-success { background-color: #198754 !important; }
         .bg-danger { background-color: #dc3545 !important; }
         .bg-warning { background-color: #ffc107 !important; color: #212529 !important; }
@@ -253,9 +254,8 @@
                     <h5 class="modal-title">Service Manager</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body bg-dark text-light">
                     <div id="service-list" class="w-100">
-                        <!-- JS injects here -->
                     </div>
                 </div>
             </div>

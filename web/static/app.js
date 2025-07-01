@@ -492,20 +492,46 @@ function openServiceModal(alias) {
                 return;
             }
 
-            let html = "<ul class='list-group'>";
+            let html = "<ul class='list-group list-group-flush'>";
+
             services.forEach(svc => {
-                const controls = svc.status === "running"
-                    ? `<button class="btn btn-sm btn-danger" onclick="remoteserviceAction('${alias}', '${svc.name}', 'stop')">Stop</button>
-                       <button class="btn btn-sm btn-secondary" onclick="remoteserviceAction('${alias}', '${svc.name}', 'restart')">Restart</button>`
-                    : `<button class="btn btn-sm btn-success" onclick="remoteserviceAction('${alias}', '${svc.name}', 'start')">Start</button>`;
-                html += `<li class='list-group-item d-flex justify-content-between align-items-center'>
-                            ${svc.name} - <strong>${svc.status}</strong>
-                            <div>${controls}</div>
-                         </li>`;
+                const status = svc.status.toLowerCase();
+                const statusClass =
+                    status === "running" ? "bg-success text-white" :
+                    status === "dead" ? "bg-danger text-white" :
+                    status === "failed" ? "bg-warning text-dark" :
+                    "bg-secondary text-light";
+
+                const controls = status === "running"
+                    ? `<button class="btn btn-sm btn-danger me-1" onclick="serviceAction('${alias}', '${svc.name}', 'stop')">Stop</button>
+                    <button class="btn btn-sm btn-secondary" onclick="serviceAction('${alias}', '${svc.name}', 'restart')">Restart</button>`
+                    : `<button class="btn btn-sm btn-success" onclick="serviceAction('${alias}', '${svc.name}', 'start')">Start</button>`;
+
+                const rowId = `svc-row-${btoa(svc.name).replace(/=/g, '')}`;
+                const arrowId = `arrow-${rowId}`;
+
+                html += `
+                <li id="${rowId}" class="list-group-item ${statusClass}" style="cursor:pointer"
+                    onclick="toggleServiceDetails('${alias}', '${svc.name}', '${rowId}', '${arrowId}')">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-start d-flex align-items-center gap-2">
+                            <i id="${arrowId}" class="bi bi-chevron-right"></i>
+                            <div>
+                                <div class="fw-bold">${svc.name}</div>
+                                <small>Status: ${svc.status}</small>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            ${controls}
+                        </div>
+                    </div>
+                </li>`;
+
             });
+
             html += "</ul>";
             document.getElementById("service-list").innerHTML = html;
-
+            
             const modal = new bootstrap.Modal(document.getElementById("serviceModal"));
             modal.show();
         })
@@ -514,6 +540,58 @@ function openServiceModal(alias) {
             alert("Could not load service list.");
         });
 }
+
+function escapeHTML(text) {
+    if (!text) return "";
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+function toggleServiceDetails(alias, serviceName, containerId, arrowId) {
+    const detailsId = `svc-details-${btoa(serviceName).replace(/=/g, '')}`;
+    const existing = document.getElementById(detailsId);
+    const arrow = document.getElementById(arrowId);
+
+    if (existing) {
+        existing.classList.add("collapse");
+        setTimeout(() => existing.remove(), 300);
+        if (arrow) arrow.className = "bi bi-chevron-right";
+        return;
+    }
+
+    fetch(`/api/ssh/${alias}/service_info/${encodeURIComponent(serviceName)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                showToast(`❌ ${data.error}`);
+                return;
+            }
+
+            const detailBlock = document.createElement("div");
+            detailBlock.className = "collapse show mt-2 p-2 border rounded bg-dark text-light small";
+            detailBlock.id = detailsId;
+            detailBlock.innerHTML = `
+                <div><strong>Status Output:</strong></div>
+                <pre class="small"><code>${escapeHTML(data.status_output)}</code></pre>
+                ${data.file_path ? `<div class="fw-bold">Service file: ${data.file_path}</div>` : ''}
+                <pre class="text-muted"><code>${escapeHTML(data.file_content || "No content available")}</code></pre>
+            `;
+
+            const container = document.getElementById(containerId);
+            container.insertAdjacentElement("afterend", detailBlock);
+
+            // Animate arrow
+            if (arrow) arrow.className = "bi bi-chevron-down";
+        })
+        .catch(err => {
+            console.error("❌ Failed to load service info:", err);
+            showToast("❌ Error loading service details");
+        });
+}
+
+
 
 
     function refreshProfiles() {
@@ -604,8 +682,9 @@ function openServiceModal(alias) {
                                         <button id="serviceaction-btn-${alias}" class="btn btn-sm btn-warning me-2 w-100"
                                             style="display:inline-block"
                                             data-bs-toggle="tooltip"
+                                            onclick="openServiceModal('${alias}')"
                                             title="Open modal to manage remote systems services">
-                                              Manage Remote Services
+                                            <i class="bi bi-gear-fill"></i> Manage Remote Services
                                         </button>
 
                                         <button id="keyaction-btn-${alias}" class="btn btn-sm btn-secondary me-2 w-100"
