@@ -1020,7 +1020,7 @@ def get_full_iptables_graph(alias):
         return jsonify({"error": "No session for alias"})
 
     try:
-        stdin, stdout, stderr = session.exec_command("sudo iptables-save")
+        stdin, stdout, stderr = session.exec_command("sudo iptables-save", get_pty=True)
         output = stdout.read().decode()
         lines = output.strip().splitlines()
 

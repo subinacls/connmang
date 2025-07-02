@@ -1431,7 +1431,7 @@ function backgroundElevatedSession(alias) {
         return;
     } else {
         console.log(`Backgrounded session name generated: ${background_name}`)
-        fetch(`/api/start_elevated/${alias}?elevate=true&background=true&session_name=${encodeURIComponent(name)}`, {method: 'POST'})
+        fetch(`/api/start_elevated/${alias}?elevate=true&background=true&session_name=${encodeURIComponent(background_name)}`, {method: 'POST'})
         .then(res => res.json())
         .then(data => {
             if (data.error) {
@@ -1439,7 +1439,7 @@ function backgroundElevatedSession(alias) {
                 alert(`❌ ${data.error}`);
             } else {
                 console.log(`Backgrounded session: ${background_name}`)
-                alert(`✅ Background session '${background_name}: ${data}' started.`);
+                alert(`✅ Background session '${background_name}' started.`);
             }
         });
     }
@@ -1448,7 +1448,7 @@ function backgroundElevatedSession(alias) {
 
 function basicFirewallViewer(alias) {
     const modalEl = document.getElementById("firewallModal");
-    const cyContainer = document.getElementById("cy-firewall");
+    const cyContainer = document.getElementById("cy2-firewall");
 
     let cy;
 
@@ -1536,7 +1536,7 @@ function basicFirewallViewer(alias) {
 function openFirewallViewer(alias) {
     console.log("📡 Loading firewall rules for:", alias);
 
-    fetch(`/api/firewall/${alias}`)
+    fetch(`/api/firewall/${encodeURIComponent(alias)}`)
         .then(res => res.json())
         .then(data => {
             const tabs = document.getElementById("firewall-tabs");
