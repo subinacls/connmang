@@ -1043,7 +1043,7 @@ function toggleConnection(alias, button) {
                             button.textContent = "Disconnect";
 
                         } else {
-                            alert("❌ Failed to connect: " + (resp.message || "Unknown error"));
+                            alert("❌ Failed to connect: " + (resp.message || "Unknown error:" resp));
                             button.textContent = originalText;
 
                         }
@@ -1534,7 +1534,7 @@ function basicFirewallViewer(alias) {
 }
 
 function openFirewallViewer(alias) {
-    
+
     console.log("📡 Loading firewall rules for:", alias);
 
     fetch(`/api/firewall/${encodeURIComponent(alias)}`)
