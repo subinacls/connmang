@@ -343,7 +343,7 @@ class SSHManager:
             f'chmod 600 ~/.ssh/authorized_keys'
         )
 
-        stdin, stdout, stderr = ssh_client.exec_command(check_cmd)
+        stdin, stdout, stderr = ssh_client.exec_command(check_cmd, get_pty=True)
         if stdout.channel.recv_exit_status() != 0:
             ssh_client.exec_command(append_cmd)
             return "injected"
@@ -395,7 +395,7 @@ class SSHManager:
             else:
                 raise Exception("run_command: Auth method not reusable. Use separate credentials.")
 
-            stdin, stdout, stderr = temp_client.exec_command(command)
+            stdin, stdout, stderr = temp_client.exec_command(command, get_pty=True)
             output = stdout.read().decode().strip()
             error = stderr.read().decode().strip()
         finally:
@@ -449,7 +449,7 @@ class SSHManager:
             temp_client.connect(hostname=peer_host, port=port, username=username)
             filename = f"/tmp/{uuid.uuid4().hex}.sh"
             commands = f"echo {b64_script} | base64 -d > {filename} && chmod +x {filename} && bash {filename}; rm -f {filename}"
-            stdin, stdout, stderr = temp_client.exec_command(commands)
+            stdin, stdout, stderr = temp_client.exec_command(commands, get_pty=True)
             output = stdout.read().decode().strip()
             error = stderr.read().decode().strip()
         finally:
@@ -464,7 +464,7 @@ class SSHManager:
 
         try:
             stdin, stdout, stderr = session.exec_command(
-                "systemctl list-units --type=service --all --no-pager --no-legend"
+                "systemctl list-units --type=service --all --no-pager --no-legend", get_pty=True
             )
             output = stdout.read().decode()
             services = []
@@ -494,7 +494,7 @@ class SSHManager:
         try:
             command = f"sudo systemctl {action} {service_name}"
             print(f"🔧 Running: {command}")
-            stdin, stdout, stderr = session.exec_command(command)
+            stdin, stdout, stderr = session.exec_command(command, get_pty=True)
 
             exit_code = stdout.channel.recv_exit_status()  # ✅ FIXED
             print(f"✅ Exit code: {exit_code}")

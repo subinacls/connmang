@@ -93,7 +93,7 @@ def audit_remote_ssh(alias):
             return jsonify({"status": "error", "message": "SSH session failed"})
 
         def has_passwordless_sudo():
-            stdin, stdout, stderr = client.exec_command("sudo -n true")
+            stdin, stdout, stderr = client.exec_command("sudo -n true", get_pty=True)
             return stdout.channel.recv_exit_status() == 0
 
         use_sudo = has_passwordless_sudo()
@@ -101,7 +101,7 @@ def audit_remote_ssh(alias):
 
         def run(cmd):
             full_cmd = f"sudo {cmd}" if use_sudo else cmd
-            stdin, stdout, stderr = client.exec_command(full_cmd)
+            stdin, stdout, stderr = client.exec_command(full_cmd, get_pty=True)
             return stdout.read().decode("utf-8")
 
         # Host keys
@@ -319,7 +319,7 @@ def introspect_remote_host(alias):
         profile = {}
 
         def run(cmd):
-            stdin, stdout, stderr = client.exec_command(cmd)
+            stdin, stdout, stderr = client.exec_command(cmd, get_pty=True)
             return stdout.read().decode().strip(), stderr.read().decode().strip()
 
         # Get current user
@@ -821,7 +821,7 @@ def execute_command(alias):
         )
 
         client = manager.sessions[alias]
-        stdin, stdout, stderr = client.exec_command(command)
+        stdin, stdout, stderr = client.exec_command(command, get_pty=True)
         result = stdout.read().decode() + stderr.read().decode()
         manager.close(alias)
 
@@ -857,7 +857,7 @@ def execute_b64_script():
         )
 
         client = manager.sessions[alias]
-        stdin, stdout, stderr = client.exec_command(encoded_command)
+        stdin, stdout, stderr = client.exec_command(encoded_command, get_pty=True)
         out = stdout.read().decode().strip()
         err = stderr.read().decode().strip()
         manager.close(alias)
@@ -939,16 +939,16 @@ def get_service_info(alias, service):
         return jsonify({"error": "No session for alias"})
 
     try:
-        stdin, stdout, stderr = session.exec_command(f"systemctl status {service}")
+        stdin, stdout, stderr = session.exec_command(f"systemctl status {service}", get_pty=True)
         status_output = stdout.read().decode()
 
-        stdin, stdout, stderr = session.exec_command(f"systemctl show -p FragmentPath {service}")
+        stdin, stdout, stderr = session.exec_command(f"systemctl show -p FragmentPath {service}", get_pty=True)
         fragment_path_line = stdout.read().decode().strip()
         fragment_path = fragment_path_line.split('=', 1)[1] if '=' in fragment_path_line else None
 
         service_file_content = ""
         if fragment_path:
-            stdin, stdout, stderr = session.exec_command(f"cat '{fragment_path}'")
+            stdin, stdout, stderr = session.exec_command(f"cat '{fragment_path}'", get_pty=True)
             service_file_content = stdout.read().decode()
 
         return jsonify({
@@ -969,7 +969,7 @@ def get_remote_iptables(alias):
         return jsonify({"error": "No session for alias"})
 
     try:
-        stdin, stdout, stderr = session.exec_command("sudo iptables -S")
+        stdin, stdout, stderr = session.exec_command("sudo iptables -S", get_pty=True)
         output = stdout.read().decode()
         lines = output.strip().splitlines()
 
