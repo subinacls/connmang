@@ -1534,6 +1534,7 @@ function basicFirewallViewer(alias) {
 }
 
 function openFirewallViewer(alias) {
+    
     console.log("📡 Loading firewall rules for:", alias);
 
     fetch(`/api/firewall/${encodeURIComponent(alias)}`)

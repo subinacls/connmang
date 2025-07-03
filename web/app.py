@@ -1023,7 +1023,8 @@ def get_full_iptables_graph(alias):
         stdin, stdout, stderr = session.exec_command("sudo iptables-save", get_pty=True)
         output = stdout.read().decode()
         lines = output.strip().splitlines()
-
+        chan = stdout.channel
+        chan.close()
         tables = {}
         current_table = None
         chains = set()
