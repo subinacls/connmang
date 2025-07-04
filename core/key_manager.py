@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from .ssh_manager import SSHManager
 
+ssh_mgr = SSHManager()
 
 KEY_STORE_PATH = os.path.expanduser("~/.ssh/connmang_keys/")
 KEY_LOG = os.path.join(KEY_STORE_PATH, "keys.json")
@@ -29,20 +30,25 @@ def list_keys(alias):
             })
     return result
 
+def ensure_connected(alias):
+    if not ssh_mgr.is_connected(alias):
+        profile = ssh_mgr.profiles.get(alias)
+        if not profile:
+            raise ValueError(f"No such profile: {alias}")
+        ssh_mgr.connect(
+            alias=alias,
+            host=profile["host"],
+            port=profile.get("port", 22),
+            username=profile["username"],
+            password=profile.get("password"),
+            key_file=profile.get("key_file")
+        )
+
 def install_key_to_remote(alias, pubkey, privkey):
-    ssh_mgr = SSHManager()
+    ensure_connected(alias)
     profile = ssh_mgr.profiles.get(alias)
     if not profile:
         return False
-
-    ssh_mgr.connect(
-        alias=alias,
-        host=profile["host"],
-        port=profile.get("port", 22),
-        username=profile["username"],
-        password=profile.get("password"),
-        key_file=profile.get("key_file")
-    )
 
     client = ssh_mgr.sessions.get(alias)
     if not client:
@@ -117,11 +123,11 @@ def generate_ssh_key(alias, key_type="ed25519", comment="", passphrase=""):
 
     return priv_path, pub_path
 
-def log_key(alias, comment, key_type, private_path, public_path, remote=None):
+def log_key(alias, key_type, comment, private_path, public_path, remote=None):
     record = {
         "alias": alias,
-        "comment": comment,
         "type": key_type,
+        "comment": comment,
         "private": private_path,
         "public": public_path,
         "remote": remote,

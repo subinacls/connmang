@@ -203,7 +203,7 @@ def generate_key(alias):
     passphrase = data.get("pass", "")
 
     private_path, public_path = generate_ssh_key(alias, key_type, comment, passphrase)
-    log_key(alias, comment, key_type, private_path, public_path)
+    log_key(alias, key_type, comment, private_path, public_path)
 
     return jsonify({"status": "success", "private": private_path, "public": public_path})
 
@@ -234,11 +234,12 @@ def delete_key(alias):
 @app.route("/api/keys/<alias>/install", methods=["POST"])
 def install_key(alias):
     data = request.get_json()
-    pub_key_path = data["pub_key"]
-
+    pub_key_path = data.get("public")
+    if not pub_key_path:
+        return jsonify({"error": "public key path required"}), 400
     profile = load_profiles().get(alias)
     if not profile:
-        return jsonify({"error": "Unknown alias"}), 404
+        return jsonify({"error": "Profile contained no alias: ${alias}"}), 404
 
     ssh_mgr.connect(
         alias=alias,
