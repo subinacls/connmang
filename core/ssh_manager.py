@@ -350,26 +350,6 @@ class SSHManager:
         else:
             return "exists"
 
-    '''
-    def run_command(self, alias, command: str):
-        """
-        Executes a shell command over SSH and returns the output.
-
-        Args:
-            alias (str): Session alias.
-            command (str): Shell command to execute.
-
-        Returns:
-            dict: Contains 'output' and 'error' keys with respective string results.
-        """
-        if alias not in self.sessions:
-            raise Exception("No active session found for alias.")
-        client = self.sessions[alias]
-        stdin, stdout, stderr = client.exec_command(command)
-        output = stdout.read().decode().strip()
-        error = stderr.read().decode().strip()
-        return {"output": output, "error": error}
-    '''
 
     def run_command(self, alias, command: str):
         """

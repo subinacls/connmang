@@ -117,9 +117,10 @@ def generate_ssh_key(alias, key_type="ed25519", comment="", passphrase=""):
 
     return priv_path, pub_path
 
-def log_key(alias, key_type, private_path, public_path, remote=None):
+def log_key(alias, comment, key_type, private_path, public_path, remote=None):
     record = {
         "alias": alias,
+        "comment": comment,
         "type": key_type,
         "private": private_path,
         "public": public_path,
